@@ -19,8 +19,8 @@ docker build -t ai-dev-env .devcontainer/
 
 # 启动容器
 docker run -it --rm \
-  -v $(pwd):/home/dev/project \
-  -v ai-dev-home:/home/dev \
+  -v $(pwd):/home/vscode/project \
+  -v ai-dev-home:/home/vscode \
   ai-dev-env \
   zsh
 ```
@@ -123,11 +123,11 @@ docker run --rm -v dev-cache:/data -v $(pwd):/backup alpine tar czf /backup/dev-
 配置存储在 `dev-home` volume 中，并自动链接：
 
 - **Volume 名称**：`dev-home`
-- **挂载路径**：`/home/dev/wsl-home`
+- **挂载路径**：`/home/vscode/wsl-home`
 - **自动链接**：
-  - `~/.claude` → `/home/dev/wsl-home/.claude`
-  - `~/.codex` → `/home/dev/wsl-home/.codex`
-  - `~/.gemini` → `/home/dev/wsl-home/.gemini`
+  - `~/.claude` → `/home/vscode/wsl-home/.claude`
+  - `~/.codex` → `/home/vscode/wsl-home/.codex`
+  - `~/.gemini` → `/home/vscode/wsl-home/.gemini`
 
 **Volume 类型**（首次创建时决定）：
 - **有 `WSL_HOME`**：bind mount，直接使用 WSL_HOME 目录
@@ -194,7 +194,7 @@ VS Code Dev Containers 会自动将项目目录挂载到容器内：
 
 ### 用户主目录
 
-`/home/dev` 是用户主目录，用于存放：
+`/home/vscode` 是用户主目录，用于存放：
 
 - 配置文件（`.zshrc`、`.gitconfig` 等）
 - 缓存目录（`.npm`、`.cache` 等）
@@ -202,7 +202,7 @@ VS Code Dev Containers 会自动将项目目录挂载到容器内：
 
 **与项目目录的关系**：
 - 项目代码：`/workspaces/<project-name>`（自动挂载）
-- 用户配置：`/home/dev`（持久化）
+- 用户配置：`/home/vscode`（持久化）
 - 两者独立，互不影响
 
 ## 端口转发说明

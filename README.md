@@ -67,9 +67,9 @@ echo "WSL_HOME=~" > .env
 
 ## 工作目录
 
-项目目录挂载到 `/home/dev/<project-name>`，例如：
+项目目录挂载到 `/home/vscode/<project-name>`，例如：
 - 打开 `/home/<username>/code/my-app`
-- 容器内挂载到：`/home/dev/my-app`
+- 容器内挂载到：`/home/vscode/my-app`
 
 ## tmux 工作流
 

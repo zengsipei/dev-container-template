@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/base:ubuntu-22.04
+FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
 # 避免交互式提示
 ENV DEBIAN_FRONTEND=noninteractive
@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     ripgrep \
     fd-find \
     bat \
-    exa \
+    eza \
     htop \
     tree \
     tmux \

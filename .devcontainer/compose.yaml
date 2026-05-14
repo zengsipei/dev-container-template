@@ -1,20 +1,19 @@
-
 services:
   devcontainer:
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile
-    
     volumes:
-      # AI agent 配置（由 initialize.sh 创建）
-      - dev-home:/home/dev/wsl-home
-      
+      - ..:/home/vscode/workspace
+
+      - ${WSL_HOME:-dev-home}:/home/vscode/wsl-home:cached
+
       # 统一缓存目录
-      - dev-cache:/home/dev/.cache-volumes
-    
+      - dev-cache:/home/vscode/.cache-volumes
+
     # 保持容器运行
     command: sleep infinity
-    
+
     # 资源限制
     deploy:
       resources:
@@ -25,8 +24,6 @@ services:
 
 volumes:
   # AI agent 配置存储
-  # 类型由 initialize.sh 根据 WSL_HOME 环境变量决定
   dev-home:
-  
   # 统一缓存存储
   dev-cache:

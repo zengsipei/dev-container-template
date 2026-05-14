@@ -8,8 +8,15 @@ echo "🚀 Setting up development environment..."
 # ============================================
 echo "📦 Setting up cache directories..."
 
-# 创建缓存子目录
-mkdir -p ~/.cache-volumes/{npm,pnpm,pip,poetry,vscode-extensions}
+# 使用 sudo 创建缓存子目录，并修改所有者为 vscode，原因是 dev-cache 在无 ~/.cache-volumes 目录时，会以 root 挂载
+sudo mkdir -p ~/.cache-volumes/{npm,pnpm,pip,poetry,vscode-extensions}
+sudo chown -R vscode:vscode ~/.cache-volumes
+
+# 创建符号链接（确保符号链接的父目录存在）
+mkdir -p ~/.local/share/pnpm
+mkdir -p ~/.cache/pip
+mkdir -p ~/.cache/pypoetry
+mkdir -p ~/.vscode-server/extensions
 
 # 创建符号链接
 ln -sf ~/.cache-volumes/npm ~/.npm
@@ -23,19 +30,19 @@ echo "✅ Cache directories configured"
 # ============================================
 # 链接 AI agent 配置（从 dev-home volume）
 # ============================================
-if [ -d "/home/dev/wsl-home/.claude" ]; then
+if [ -d "/home/vscode/wsl-home/.claude" ]; then
     echo "📦 Linking Claude Code configuration..."
-    ln -sf /home/dev/wsl-home/.claude ~/.claude
+    ln -sf /home/vscode/wsl-home/.claude ~/.claude
 fi
 
-if [ -d "/home/dev/wsl-home/.codex" ]; then
+if [ -d "/home/vscode/wsl-home/.codex" ]; then
     echo "📦 Linking Codex configuration..."
-    ln -sf /home/dev/wsl-home/.codex ~/.codex
+    ln -sf /home/vscode/wsl-home/.codex ~/.codex
 fi
 
-if [ -d "/home/dev/wsl-home/.gemini" ]; then
+if [ -d "/home/vscode/wsl-home/.gemini" ]; then
     echo "📦 Linking Gemini configuration..."
-    ln -sf /home/dev/wsl-home/.gemini ~/.gemini
+    ln -sf /home/vscode/wsl-home/.gemini ~/.gemini
 fi
 
 # ============================================
@@ -43,8 +50,7 @@ fi
 # ============================================
 if ! command -v claude &> /dev/null; then
     echo "📦 Installing Claude Code..."
-    curl -fsSL https://claude.ai/install.sh | sh
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+    npm install -g @anthropic-ai/claude-code
 fi
 
 if ! command -v codex &> /dev/null; then
@@ -54,7 +60,7 @@ fi
 
 if ! command -v gemini &> /dev/null; then
     echo "📦 Installing Gemini CLI..."
-    npm install -g @anthropic/gemini-cli
+    npm install -g @google/gemini-cli
 fi
 
 # ============================================

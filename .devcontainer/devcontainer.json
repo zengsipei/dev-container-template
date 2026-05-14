@@ -1,11 +1,9 @@
 {
-  "name": "AI Dev Container",
-  
+  "name": "Dev Container",
+
   "dockerComposeFile": "compose.yaml",
   "service": "devcontainer",
-  "workspaceFolder": "/home/dev/${localWorkspaceFolderBasename}",
-
-  "initializeCommand": "bash .devcontainer/initialize.sh",
+  "workspaceFolder": "/home/vscode/workspace",
 
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
@@ -18,7 +16,7 @@
       "version": "lts"
     },
     "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.12"
+      "version": "os-provided"
     },
     "ghcr.io/devcontainers/features/rust:1": {
       "version": "latest"
