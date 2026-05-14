@@ -94,11 +94,11 @@ if ! grep -q "zsh-autosuggestions" ~/.zshrc 2>/dev/null; then
 ZSH_THEME="random"
 
 # zsh 插件
-plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
+plugins=(git z sudo zsh-autosuggestions zsh-syntax-highlighting)
 
 # 实用别名
 alias ll="eza -la"
-alias cat="bat"
+alias cat="batcat"
 alias find="fd"
 alias grep="rg"
 
