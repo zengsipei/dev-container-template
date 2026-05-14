@@ -88,9 +88,9 @@ echo '$env:WSL_HOME = "\\wsl.localhost\Ubuntu\home\dev"' >> $PROFILE
 
 ## 配置管理
 
-### 缓存统一管理
+### 缓存与用户配置统一管理
 
-所有缓存存储在单个 named volume `dev-cache` 中，通过符号链接映射：
+所有缓存和用户级配置存储在单个 named volume `dev-cache` 中，通过符号链接映射：
 
 ```
 ~/.cache-volumes/          # named volume 挂载点
@@ -98,13 +98,16 @@ echo '$env:WSL_HOME = "\\wsl.localhost\Ubuntu\home\dev"' >> $PROFILE
 ├── pnpm/                  # → ~/.local/share/pnpm
 ├── pip/                   # → ~/.cache/pip
 ├── poetry/                # → ~/.cache/pypoetry
-└── vscode-extensions/     # → ~/.vscode-server/extensions
+├── vscode-extensions/     # → ~/.vscode-server/extensions
+├── tmux/                  # → ~/.tmux（tmux 配置和插件）
+└── zsh/                   # → ~/.zsh（zsh 插件）
 ```
 
 **优势**：
 - 单个 volume 便于管理和备份
-- 重建容器不会丢失缓存
+- 重建容器不会丢失缓存和配置
 - 减少磁盘碎片
+- 用户级配置独立于镜像，可自定义
 
 **管理命令**：
 ```bash
@@ -177,6 +180,20 @@ tl
 1. 创建 `tn ai` 会话
 2. 分成三个窗格，分别运行 claude、codex、gemini
 3. 使用 `Ctrl-a d` 分离，`ta ai` 重新连接
+
+**配置持久化**：
+- tmux 配置文件：`~/.tmux.conf`
+- tmux 插件目录：`~/.tmux/plugins/`
+- 以上配置存储在 `dev-cache` volume 中，重建容器不会丢失
+
+**自定义配置**：
+```bash
+# 编辑配置文件
+vim ~/.tmux.conf
+
+# 安装新插件（在 tmux 会话中）
+Ctrl-a I         # 按 Ctrl-a 然后按大写 I
+```
 
 ## 工作目录说明
 

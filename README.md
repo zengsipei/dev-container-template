@@ -63,7 +63,8 @@ echo "WSL_HOME=~" > .env
 
 **dev-cache volume**：
 - 统一缓存存储（npm、pnpm、pip、poetry、VS Code 扩展）
-- 自动管理，无需手动干预
+- 用户级配置（tmux、zsh 插件）
+- 自动管理，重建容器不会丢失
 
 ## 工作目录
 
