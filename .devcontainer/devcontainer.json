@@ -1,16 +1,11 @@
 {
   "name": "AI Dev Container",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
-  },
+  
+  "dockerComposeFile": "compose.yaml",
+  "service": "devcontainer",
+  "workspaceFolder": "/home/dev/${localWorkspaceFolderBasename}",
 
   "initializeCommand": "bash .devcontainer/initialize.sh",
-
-  "mounts": [
-    "source=dev-home,target=/home/dev/wsl-home,type=volume",
-    "source=dev-cache,target=/home/dev/.cache-volumes,type=volume"
-  ],
 
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
@@ -36,12 +31,6 @@
   "postCreateCommand": "bash .devcontainer/post-create.sh",
 
   "forwardPorts": [3000, 8080, 5173, 9000],
-
-  "runArgs": [
-    "--memory=8g",
-    "--cpus=4",
-    "--memory-swap=8g"
-  ],
 
   "customizations": {
     "vscode": {

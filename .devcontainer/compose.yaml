@@ -1,0 +1,32 @@
+
+services:
+  devcontainer:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    
+    volumes:
+      # AI agent 配置（由 initialize.sh 创建）
+      - dev-home:/home/dev/wsl-home
+      
+      # 统一缓存目录
+      - dev-cache:/home/dev/.cache-volumes
+    
+    # 保持容器运行
+    command: sleep infinity
+    
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+volumes:
+  # AI agent 配置存储
+  # 类型由 initialize.sh 根据 WSL_HOME 环境变量决定
+  dev-home:
+  
+  # 统一缓存存储
+  dev-cache:

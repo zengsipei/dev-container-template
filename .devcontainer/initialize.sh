@@ -1,6 +1,6 @@
 #!/bin/bash
 # Dev Container 初始化脚本
-# 在构建前执行，动态创建 dev-home volume
+# 在构建前执行，根据 WSL_HOME 环境变量创建 dev-home volume
 
 set -e
 
@@ -14,7 +14,7 @@ if [ -f "$ENV_FILE" ]; then
     echo "📄 Loading environment from .env file..."
     # 导出 .env 中的变量（忽略注释和空行）
     set -a
-    source <(grep -v '^#' "$ENV_FILE" | grep -v '^$' | sed 's/^/export /')
+    source <(grep -v '^#' "$ENV_FILE" | grep -v '^$')
     set +a
 fi
 

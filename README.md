@@ -11,30 +11,24 @@
 3. 按 `F1` → `Dev Containers: Reopen in Container`
 4. 等待构建完成
 
-**注意**：现在无需任何配置即可启动容器。
+**注意**：无需任何配置即可启动容器。
 
-### 2. 可选：绑定现有配置
+### 2. 可选：绑定 WSL 中的现有配置
 
-如果你在 WSL 中已有 AI agent 配置，可以在首次启动前设置 `WSL_HOME` 环境变量：
+如果你在 WSL 中已有 AI agent 配置（`.claude`、`.codex`、`.gemini`），可以绑定它们：
 
-**在 WSL 中使用**（推荐）：
+**首次启动前执行**：
 
 ```bash
-# 创建 .env 文件
+# 在项目根目录创建 .env 文件
 echo "WSL_HOME=~" > .env
 ```
 
-**在 Windows 中使用**：
-
-```powershell
-# 永久设置
-[Environment]::SetEnvironmentVariable("WSL_HOME", "\\wsl.localhost\Ubuntu\home\dev", "User")
-
-# 或临时设置
-$env:WSL_HOME = "\\wsl.localhost\Ubuntu\home\dev"
-```
-
-**注意**：`WSL_HOME` 仅在首次启动时生效。volume 创建后，类型不会改变。
+**说明**：
+- `initialize.sh` 会读取 `.env` 文件中的 `WSL_HOME`
+- 如果 `WSL_HOME` 存在且目录有效，创建 bind mount volume
+- 如果不设置，创建普通 named volume（数据在 Docker 管理区域）
+- volume 创建后类型不会改变，切换需删除：`docker volume rm dev-home`
 
 ## 预装工具
 
@@ -47,7 +41,7 @@ $env:WSL_HOME = "\\wsl.localhost\Ubuntu\home\dev"
 - Node.js LTS + pnpm
 - Python 3.12 + Poetry
 - Rust
-- Git + GitHub CLI
+- GitHub CLI
 - zsh + Oh My Zsh
 
 ### CLI 工具
@@ -60,17 +54,22 @@ $env:WSL_HOME = "\\wsl.localhost\Ubuntu\home\dev"
 
 ## 配置管理
 
-配置存储在 `dev-home` volume 中，并自动链接：
+配置存储在 Docker volumes 中：
 
-- `~/.claude` ← `/home/dev/wsl-home/.claude`
-- `~/.codex` ← `/home/dev/wsl-home/.codex`
-- `~/.gemini` ← `/home/dev/wsl-home/.gemini`
+**dev-home volume**：
+- 默认：普通 named volume
+- 可选：bind mount 到 WSL home 目录
+- 用途：AI agent 配置（`.claude`、`.codex`、`.gemini`）
 
-**Volume 类型**（首次创建时决定）：
-- **有 `WSL_HOME`**：bind mount，直接使用 WSL_HOME 目录
-- **无 `WSL_HOME`**：普通 named volume，数据存储在 Docker 管理的区域
+**dev-cache volume**：
+- 统一缓存存储（npm、pnpm、pip、poetry、VS Code 扩展）
+- 自动管理，无需手动干预
 
-**切换类型**：删除 volume 后重启 `docker volume rm dev-home`
+## 工作目录
+
+项目目录挂载到 `/home/dev/<project-name>`，例如：
+- 打开 `/home/<username>/code/my-app`
+- 容器内挂载到：`/home/dev/my-app`
 
 ## tmux 工作流
 
