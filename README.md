@@ -48,7 +48,7 @@ echo "WSL_HOME=~" > .env
 - ripgrep (rg)
 - fd
 - bat
-- exa
+- eza
 - jq
 - tmux
 

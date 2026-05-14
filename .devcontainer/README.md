@@ -43,7 +43,7 @@ docker run -it --rm \
 - `ripgrep` (rg) - 快速搜索
 - `fd` - 现代 find 替代
 - `bat` - 带语法高亮的 cat
-- `exa` - 现代 ls 替代
+- `eza` - 现代 ls 替代
 - `jq` - JSON 处理
 - `tmux` - 终端复用器
 
