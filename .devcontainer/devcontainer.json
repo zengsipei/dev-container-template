@@ -1,0 +1,73 @@
+{
+  "name": "AI Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+
+  "initializeCommand": "bash .devcontainer/initialize.sh",
+
+  "mounts": [
+    "source=dev-home,target=/home/dev/wsl-home,type=volume",
+    "source=dev-cache,target=/home/dev/.cache-volumes,type=volume"
+  ],
+
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": true,
+      "upgradePackages": true
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/node:2.0.0": {
+      "version": "lts"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    },
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+  "forwardPorts": [3000, 8080, 5173, 9000],
+
+  "runArgs": [
+    "--memory=8g",
+    "--cpus=4",
+    "--memory-swap=8g"
+  ],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "esbenp.prettier-vscode",
+        "editorconfig.editorconfig",
+        "dbaeumer.vscode-eslint",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "biomejs.biome"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2,
+        "files.autoSave": "afterDelay",
+        "git.autofetch": true,
+        "git.confirmSync": false
+      }
+    }
+  }
+}
