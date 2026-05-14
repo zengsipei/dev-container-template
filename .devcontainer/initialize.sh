@@ -12,9 +12,9 @@ echo "🔧 Initializing Dev Container..."
 ENV_FILE="$(dirname "$0")/../.env"
 if [ -f "$ENV_FILE" ]; then
     echo "📄 Loading environment from .env file..."
-    # 导出 .env 中的变量（忽略注释和空行）
+    # 导出 .env 中的变量（忽略注释和空行，去除 CRLF）
     set -a
-    source <(grep -v '^#' "$ENV_FILE" | grep -v '^$')
+    source <(grep -v '^#' "$ENV_FILE" | grep -v '^$' | tr -d '\r')
     set +a
 fi
 
