@@ -1,0 +1,25 @@
+# Auto detect text files and normalize to LF
+* text=auto eol=lf
+
+# Shell scripts must always use LF
+*.sh text eol=lf
+
+# Docker files
+Dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+
+# Configuration files
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.txt text eol=lf
+
+# Scripts
+*.js text eol=lf
+*.ts text eol=lf
+*.py text eol=lf

@@ -282,6 +282,24 @@ RUN npm install -g your-package
 
 ## 常见问题
 
+### Q: 脚本报错 `$'\r': command not found`？
+
+这是 Windows CRLF 行尾问题。已在 `.gitattributes` 中配置强制 LF，但首次克隆后需要重新规范化：
+
+```bash
+# 在 WSL 中执行
+cd /path/to/dev-container-template
+git add .gitattributes
+git rm --cached -r .
+git reset --hard
+```
+
+或重新克隆仓库：
+
+```bash
+git clone https://github.com/zengsipei/dev-container-template.git
+```
+
 ### Q: 文件权限问题？
 
 容器内使用 UID 1000，确保宿主机项目目录权限匹配：
@@ -315,7 +333,7 @@ dev-cache/
 ```
 
 其他持久化数据：
-- 项目代码（bind mount）
+- 项目代码
 - AI agent 配置（从 WSL 挂载）
 
 **优势**：
