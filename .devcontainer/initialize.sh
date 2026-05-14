@@ -7,6 +7,21 @@ set -e
 echo "🔧 Initializing Dev Container..."
 
 # ============================================
+# 从 .env 文件读取环境变量
+# ============================================
+ENV_FILE="$(dirname "$0")/../.env"
+if [ -f "$ENV_FILE" ]; then
+    echo "📄 Loading environment from .env file..."
+    # 导出 .env 中的变量（忽略注释和空行）
+    set -a
+    source <(grep -v '^#' "$ENV_FILE" | grep -v '^$' | sed 's/^/export /')
+    set +a
+fi
+
+# 调试：显示 WSL_HOME 值
+echo "🔍 WSL_HOME value: '${WSL_HOME:-<not set>}'"
+
+# ============================================
 # 检查 dev-home volume 是否已存在
 # ============================================
 if docker volume inspect dev-home &>/dev/null; then

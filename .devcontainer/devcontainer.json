@@ -19,9 +19,6 @@
       "installOhMyZsh": true,
       "upgradePackages": true
     },
-    "ghcr.io/devcontainers/features/git:1": {
-      "version": "latest"
-    },
     "ghcr.io/devcontainers/features/node:2.0.0": {
       "version": "lts"
     },
