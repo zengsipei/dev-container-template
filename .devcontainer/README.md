@@ -1,13 +1,13 @@
-# Dev Container 最佳实践
+# Dev Container 使用指南
 
-这是一个完整的开发容器模板，隔离于 Windows 和 WSL 环境。
+完整的开发容器使用文档。
 
 ## 快速开始
 
 1. 安装 VS Code 扩展：`ms-vscode-remote.remote-containers`
-2. 打开此目录
-3. 按 `F1` → 输入 `Dev Containers: Reopen in Container`
-4. 等待镜像拉取和配置完成（首次约 2-3 分钟）
+2. 打开项目目录
+3. 按 `F1` → `Dev Containers: Reopen in Container`
+4. 等待镜像拉取完成（首次约 1-2 分钟）
 
 **使用预构建镜像**：无需本地构建，直接从 Docker Hub 拉取。
 
@@ -56,19 +56,19 @@ WSL_HOME=/home/<username>
 
 ## 配置管理
 
-### 缓存与用户配置统一管理
+### dev-cache Volume
 
-所有缓存和用户级配置存储在单个 named volume `dev-cache` 中，通过符号链接映射：
+所有缓存和用户配置存储在单个 named volume `dev-cache` 中：
 
 ```
-~/.cache-volumes/          # named volume 挂载点
+~/.cache-volumes/          # dev-cache volume 挂载点
 ├── npm/                   # → ~/.npm
 ├── pnpm/                  # → ~/.local/share/pnpm
 ├── pip/                   # → ~/.cache/pip
 ├── poetry/                # → ~/.cache/pypoetry
 ├── vscode-extensions/     # → ~/.vscode-server/extensions
-├── tmux/                  # → ~/.tmux（tmux 配置和插件）
-└── zsh/                   # → ~/.zsh（zsh 插件）
+├── tmux/                  # → ~/.tmux
+└── zsh/                   # → ~/.zsh
 ```
 
 **优势**：
@@ -89,9 +89,9 @@ docker volume rm dev-cache
 docker run --rm -v dev-cache:/data -v $(pwd):/backup alpine tar czf /backup/dev-cache.tar.gz /data
 ```
 
-### AI Agent 配置管理
+### dev-home Volume
 
-配置存储在 `dev-home` volume 中，并自动链接：
+AI agent 配置存储位置：
 
 - **Volume 名称**：`dev-home`
 - **挂载路径**：`/home/vscode/wsl-home`
@@ -116,13 +116,15 @@ docker volume rm dev-home
 # 重启容器，会根据当前 WSL_HOME 重新创建
 ```
 
-### tmux 使用（推荐）
+## tmux 使用指南
 
 使用 tmux 在多个 AI agent 间切换：
 
+### 基本操作
+
 ```bash
 # 创建新会话
-tn claude
+tn ai
 
 # 在会话中运行 claude
 claude
@@ -138,23 +140,37 @@ Ctrl-a <方向键>
 Ctrl-a d
 
 # 重新连接
-ta claude
+ta ai
 
 # 列出所有会话
 tl
 ```
 
-**推荐工作流**：
+### 推荐工作流
+
 1. 创建 `tn ai` 会话
 2. 分成三个窗格，分别运行 claude、codex、gemini
 3. 使用 `Ctrl-a d` 分离，`ta ai` 重新连接
 
-**配置持久化**：
+### 快捷键
+
+| 快捷键 | 功能 |
+|--------|------|
+| `Ctrl-a %` | 垂直分屏 |
+| `Ctrl-a "` | 水平分屏 |
+| `Ctrl-a <方向键>` | 切换窗格 |
+| `Ctrl-a d` | 分离会话 |
+| `Ctrl-a c` | 创建新窗口 |
+| `Ctrl-a n/p` | 切换窗口 |
+
+### 配置持久化
+
 - tmux 配置文件：`~/.tmux.conf`
 - tmux 插件目录：`~/.tmux/plugins/`
 - 以上配置存储在 `dev-cache` volume 中，重建容器不会丢失
 
-**自定义配置**：
+### 自定义配置
+
 ```bash
 # 编辑配置文件
 vim ~/.tmux.conf
@@ -218,7 +234,8 @@ VS Code Dev Containers 会自动将项目目录挂载到容器内：
 ├── devcontainer.json    # 主配置（运行时配置）
 ├── compose.yaml         # Docker Compose 配置
 ├── post-create.sh       # 初始化脚本（容器首次创建时执行）
-└── README.md           # 本文件
+├── .env.example         # 环境变量示例
+└── README.md            # 本文件
 ```
 
 ## 预构建镜像
@@ -247,11 +264,11 @@ docker pull xiao806852034/ai-dev-container:latest
 
 **方式一：修改预构建镜像**（推荐）
 
-编辑 `devimage-build/Dockerfile` 和 `devimage-build/devcontainer.json`，然后重新构建镜像。
+编辑 `devimage-build/Dockerfile`，然后重新构建镜像。
 
 **方式二：在项目中添加**
 
-编辑 `devimage-build/on-create.sh`，添加安装命令。
+编辑 `.devcontainer/post-create.sh`，添加安装命令。
 
 ### 修改资源限制
 
@@ -321,7 +338,9 @@ dev-cache/
 ├── pnpm/             # pnpm store
 ├── pip/              # pip 缓存
 ├── poetry/           # Poetry 缓存
-└── vscode-extensions/ # VS Code 扩展
+├── vscode-extensions/ # VS Code 扩展
+├── tmux/             # tmux 配置
+└── zsh/              # zsh 插件
 ```
 
 其他持久化数据：
