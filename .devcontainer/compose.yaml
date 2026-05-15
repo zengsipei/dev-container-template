@@ -1,8 +1,6 @@
 services:
   devcontainer:
-    build:
-      context: ..
-      dockerfile: .devcontainer/Dockerfile
+    image: xiao806852034/ai-dev-container:latest
     volumes:
       - ..:/home/vscode/workspace
 

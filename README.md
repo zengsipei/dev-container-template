@@ -9,23 +9,25 @@
 1. 用 VS Code 打开此目录
 2. 安装扩展：`ms-vscode-remote.remote-containers`
 3. 按 `F1` → `Dev Containers: Reopen in Container`
-4. 等待构建完成
+4. 等待镜像拉取和配置完成
 
-**注意**：无需任何配置即可启动容器。
+**注意**：使用预构建镜像，无需本地构建。
 
 ### 2. 可选：绑定 WSL 中的现有配置
 
 如果你在 WSL 中已有 AI agent 配置（`.claude`、`.codex`、`.gemini`），可以绑定它们：
 
-**首次启动前执行**：
+**设置环境变量**：
 
 ```bash
-# 在项目根目录创建 .env 文件
-echo "WSL_HOME=~" > .env
+# 在 WSL 中设置（临时）
+export WSL_HOME=~
+
+# 或在 Windows 中设置（永久）
+[Environment]::SetEnvironmentVariable("WSL_HOME", "\\wsl.localhost\Ubuntu\home\<username>", "User")
 ```
 
 **说明**：
-- `initialize.sh` 会读取 `.env` 文件中的 `WSL_HOME`
 - 如果 `WSL_HOME` 存在且目录有效，创建 bind mount volume
 - 如果不设置，创建普通 named volume（数据在 Docker 管理区域）
 - volume 创建后类型不会改变，切换需删除：`docker volume rm dev-home`
@@ -37,7 +39,7 @@ echo "WSL_HOME=~" > .env
 - OpenAI Codex (`codex`)
 - Gemini CLI (`gemini`)
 
-### 开发环境（通过 Features）
+### 开发环境
 - Node.js LTS + pnpm
 - Python 3.12 + Poetry
 - Rust

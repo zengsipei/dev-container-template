@@ -4,26 +4,12 @@
 
 ## 快速开始
 
-### 方式一：VS Code Dev Containers（推荐）
-
 1. 安装 VS Code 扩展：`ms-vscode-remote.remote-containers`
 2. 打开此目录
 3. 按 `F1` → 输入 `Dev Containers: Reopen in Container`
-4. 等待构建完成（首次约 5-10 分钟）
+4. 等待镜像拉取和配置完成（首次约 2-3 分钟）
 
-### 方式二：Docker CLI
-
-```bash
-# 构建镜像
-docker build -t ai-dev-env .devcontainer/
-
-# 启动容器
-docker run -it --rm \
-  -v $(pwd):/home/vscode/project \
-  -v ai-dev-home:/home/vscode \
-  ai-dev-env \
-  zsh
-```
+**使用预构建镜像**：无需本地构建，直接从 Docker Hub 拉取。
 
 ## 预装工具
 
@@ -32,7 +18,7 @@ docker run -it --rm \
 - **OpenAI Codex** - OpenAI 的代码生成工具
 - **Gemini CLI** - Google Gemini 命令行工具
 
-### 开发环境（通过 Features 安装）
+### 开发环境
 - Node.js LTS + pnpm
 - Python 3.12 + Poetry
 - Rust
@@ -66,24 +52,24 @@ docker run -it --rm \
 **在 WSL 中使用**（推荐）：
 
 ```bash
-# 在 .env 文件中设置（可选）
-echo "WSL_HOME=$HOME" > .env
+# 临时设置（当前会话）
+export WSL_HOME=~
 
-# 或使用 ~（会被展开）
-echo "WSL_HOME=~" > .env
+# 或在 .bashrc / .zshrc 中永久设置
+echo 'export WSL_HOME=~' >> ~/.bashrc
 ```
 
 **在 Windows 中使用**：
 
 ```powershell
 # 方式一：临时设置（当前 PowerShell 会话）
-$env:WSL_HOME = "\\wsl.localhost\Ubuntu\home\dev"
+$env:WSL_HOME = "\\wsl.localhost\Ubuntu\home\<username>"
 
 # 方式二：永久设置（系统环境变量）
-[Environment]::SetEnvironmentVariable("WSL_HOME", "\\wsl.localhost\Ubuntu\home\dev", "User")
+[Environment]::SetEnvironmentVariable("WSL_HOME", "\\wsl.localhost\Ubuntu\home\<username>", "User")
 
 # 方式三：用户配置文件（$PROFILE）
-echo '$env:WSL_HOME = "\\wsl.localhost\Ubuntu\home\dev"' >> $PROFILE
+echo '$env:WSL_HOME = "\\wsl.localhost\Ubuntu\home\<username>"' >> $PROFILE
 ```
 
 ## 配置管理
@@ -248,35 +234,42 @@ VS Code Dev Containers 会自动将项目目录挂载到容器内：
 ```
 .devcontainer/
 ├── devcontainer.json    # 主配置（运行时配置）
-├── Dockerfile           # 镜像定义（构建时配置）
-├── initialize.sh        # 初始化脚本（构建前执行）
-├── post-create.sh       # 初始化脚本（构建后执行）
+├── compose.yaml         # Docker Compose 配置
+├── post-create.sh       # 初始化脚本（容器首次创建时执行）
 └── README.md           # 本文件
+```
+
+## 预构建镜像
+
+此项目使用预构建镜像 `xiao806852034/ai-dev-container:latest`，包含所有工具和配置。
+
+**镜像构建源码**：见 `devimage-build/` 目录
+
+**优势**：
+- 无需本地构建，启动速度快
+- 多项目复用同一镜像
+- 统一的开发环境
+
+**更新镜像**：
+```bash
+# 拉取最新镜像
+docker pull xiao806852034/ai-dev-container:latest
+
+# 重建容器
+# VS Code: F1 → Dev Containers: Rebuild Container
 ```
 
 ## 自定义配置
 
 ### 添加新工具
 
-**优先使用 Features**（推荐）：
+**方式一：修改预构建镜像**（推荐）
 
-```json
-"features": {
-  "ghcr.io/devcontainers/features/go:1": {
-    "version": "latest"
-  }
-}
-```
+编辑 `devimage-build/Dockerfile` 和 `devimage-build/devcontainer.json`，然后重新构建镜像。
 
-**Features 未覆盖的工具**，编辑 `Dockerfile`：
+**方式二：在项目中添加**
 
-```dockerfile
-# 添加系统包
-RUN apt-get install -y your-package
-
-# 添加 npm 全局包
-RUN npm install -g your-package
-```
+编辑 `devimage-build/on-create.sh`，添加安装命令。
 
 ### 修改资源限制
 
