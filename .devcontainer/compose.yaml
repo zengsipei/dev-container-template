@@ -1,6 +1,7 @@
 services:
   devcontainer:
     image: xiao806852034/ai-dev-container:latest
+    pull_policy: always
     volumes:
       - ..:/home/vscode/workspace
 
