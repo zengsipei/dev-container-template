@@ -19,3 +19,21 @@ if [ -d "/home/vscode/wsl-home/.gemini" ]; then
     ln -sf /home/vscode/wsl-home/.gemini ~/.gemini
 fi
 
+
+# ============================================
+# 安装 AI Agents
+# ============================================
+if ! command -v claude &> /dev/null; then
+    echo "📦 Installing Claude Code..."
+    npm install -g @anthropic-ai/claude-code
+fi
+
+if ! command -v codex &> /dev/null; then
+    echo "📦 Installing OpenAI Codex..."
+    npm install -g @openai/codex
+fi
+
+if ! command -v gemini &> /dev/null; then
+    echo "📦 Installing Gemini CLI..."
+    npm install -g @google/gemini-cli
+fi

@@ -38,66 +38,18 @@ RUN mkdir -p ~/.cache-volumes/{npm,pnpm,pip,poetry,vscode-extensions,tmux/plugin
     && ln -sf ~/.cache-volumes/vscode-extensions ~/.vscode-server/extensions
 
 # 配置 tmux（持久化到 dev-cache）
-# 先在目标目录操作，最后创建符号链接
 RUN mkdir -p ~/.cache-volumes/tmux/plugins \
-    && git clone https://github.com/tmux-plugins/tpm ~/.cache-volumes/tmux/plugins/tpm \
-    && cat > ~/.cache-volumes/tmux/.tmux.conf << 'EOF'
-# tmux 基础配置
-set -g @plugin 'tmux-plugins/tpm'
-set -g @plugin 'tmux-plugins/tmux-sensible'
-
-# 启用鼠标
-set -g mouse on
-
-# 修改前缀键为 Ctrl-a
-set -g prefix C-a
-bind C-a send-prefix
-
-# 分屏快捷键
-bind | split-window -h
-bind - split-window -v
-
-# 窗口导航
-bind h select-pane -L
-bind j select-pane -D
-bind k select-pane -U
-bind l select-pane -R
-EOF
-
-RUN ln -sf ~/.cache-volumes/tmux ~/.tmux \
+    && git clone https://github.com/tmux-plugins/tpm ~/.cache-volumes/tmux/plugins/tpm
+COPY configs/tmux.conf /tmp/tmux.conf
+RUN mv /tmp/tmux.conf ~/.cache-volumes/tmux/.tmux.conf \
+    && ln -sf ~/.cache-volumes/tmux ~/.tmux \
     && ln -sf ~/.cache-volumes/tmux/.tmux.conf ~/.tmux.conf
 
 # 配置 zsh（持久化到 dev-cache）
-# 先在目标目录操作，最后创建符号链接
 RUN mkdir -p ~/.cache-volumes/zsh/zsh-autosuggestions \
     && mkdir -p ~/.cache-volumes/zsh/zsh-syntax-highlighting \
     && git clone https://github.com/zsh-users/zsh-autosuggestions ~/.cache-volumes/zsh/zsh-autosuggestions \
-    && git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.cache-volumes/zsh/zsh-syntax-highlighting \
-    && cat >> ~/.zshrc << 'EOF'
-
-# zsh 主题（随机）
-ZSH_THEME="random"
-
-# zsh 插件
-plugins=(git z sudo zsh-autosuggestions zsh-syntax-highlighting)
-
-# 实用别名
-alias ll="eza -la"
-alias bat="batcat"
-alias cat="bat"
-alias find="fd"
-alias grep="rg"
-
-# tmux 快捷键
-alias ta='tmux attach -t'
-alias tn='tmux new -s'
-alias tl='tmux ls'
-alias tk='tmux kill-session -t'
-EOF
-
-RUN ln -sf ~/.cache-volumes/zsh ~/.zsh
-
-# 安装 AI Agents
-RUN npm install -g @anthropic-ai/claude-code \
-    && npm install -g @openai/codex \
-    && npm install -g @google/gemini-cli
+    && git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.cache-volumes/zsh/zsh-syntax-highlighting
+COPY configs/zshrc-addon /tmp/zshrc-addon
+RUN cat /tmp/zshrc-addon >> ~/.zshrc \
+    && ln -sf ~/.cache-volumes/zsh ~/.zsh
