@@ -1,7 +1,7 @@
 services:
   devcontainer:
     image: xiao806852034/ai-dev-container:latest
-    pull_policy: always
+    # pull_policy: always # 此处有 bug，VS Code 生成临时 compose 文件，把 image 指向这个本地镜像，然后远程没有
     volumes:
       - ..:/home/vscode/workspace
 
@@ -24,5 +24,7 @@ services:
 volumes:
   # AI agent 配置存储
   dev-home:
+    name: dev-home
   # 统一缓存存储
   dev-cache:
+    name: dev-cache
