@@ -26,7 +26,8 @@ USER vscode
 WORKDIR /home/vscode
 
 # 创建缓存目录和符号链接
-RUN mkdir -p ~/.cache-volumes/{npm,pnpm,pip,poetry,vscode-extensions,tmux/plugins,zsh} \
+RUN mkdir -p ~/.cache-volumes/{npm,pnpm,pip,poetry,vscode-extensions,zsh} \
+    && mkdir -p ~/.cache-volumes/tmux/plugins \
     && rm -rf ~/.npm \
     && rm -rf ~/.local/share/pnpm \
     && rm -rf ~/.cache/pip \
@@ -39,18 +40,14 @@ RUN mkdir -p ~/.cache-volumes/{npm,pnpm,pip,poetry,vscode-extensions,tmux/plugin
     && ln -sf ~/.cache-volumes/vscode-extensions ~/.vscode-server/extensions
 
 # 配置 tmux（持久化到 dev-cache）
-RUN mkdir -p ~/.cache-volumes/tmux/plugins \
-    && git clone https://github.com/tmux-plugins/tpm ~/.cache-volumes/tmux/plugins/tpm
+RUN git clone https://github.com/tmux-plugins/tpm ~/.cache-volumes/tmux/plugins/tpm
 COPY --chown=vscode:vscode configs/tmux.conf /home/vscode/.cache-volumes/tmux/.tmux.conf
-RUN rm -rf ~/.tmux \
-    && rm -rf ~/.tmux.conf \
+RUN rm -rf ~/.tmux ~/.tmux.conf \
     && ln -sf ~/.cache-volumes/tmux ~/.tmux \
     && ln -sf ~/.cache-volumes/tmux/.tmux.conf ~/.tmux.conf
 
 # 配置 zsh（持久化到 dev-cache）
-RUN mkdir -p ~/.cache-volumes/zsh/zsh-autosuggestions \
-    && mkdir -p ~/.cache-volumes/zsh/zsh-syntax-highlighting \
-    && git clone https://github.com/zsh-users/zsh-autosuggestions ~/.cache-volumes/zsh/zsh-autosuggestions \
+RUN git clone https://github.com/zsh-users/zsh-autosuggestions ~/.cache-volumes/zsh/zsh-autosuggestions \
     && git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.cache-volumes/zsh/zsh-syntax-highlighting
 COPY --chown=vscode:vscode configs/zshrc-addon /tmp/zshrc-addon
 RUN cat /tmp/zshrc-addon >> ~/.zshrc \
