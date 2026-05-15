@@ -17,20 +17,20 @@
 
 如果你在 WSL 中已有 AI agent 配置（`.claude`、`.codex`、`.gemini`），可以绑定它们：
 
-**设置环境变量**：
+**在 `.devcontainer/.env` 文件中设置**：
 
 ```bash
-# 在 WSL 中设置（临时）
-export WSL_HOME=~
+# 复制示例文件
+cp .devcontainer/.env.example .devcontainer/.env
 
-# 或在 Windows 中设置（永久）
-[Environment]::SetEnvironmentVariable("WSL_HOME", "\\wsl.localhost\Ubuntu\home\<username>", "User")
+# 编辑 .env 文件
+WSL_HOME=/home/<username>
 ```
 
 **说明**：
-- 如果 `WSL_HOME` 存在且目录有效，创建 bind mount volume
-- 如果不设置，创建普通 named volume（数据在 Docker 管理区域）
-- volume 创建后类型不会改变，切换需删除：`docker volume rm dev-home`
+- 有 `WSL_HOME`：bind mount 到指定目录（直接访问 WSL 文件）
+- 无 `WSL_HOME`：使用 named volume（数据在 Docker 管理区域）
+- compose.yaml 会自动处理，无需手动创建 volume
 
 ## 预装工具
 

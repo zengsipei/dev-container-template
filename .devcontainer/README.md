@@ -39,38 +39,20 @@
 
 **重要**：`WSL_HOME` 是可选的。即使不设置，容器也能正常启动。
 
-**工作原理**：
-- **首次启动**：根据 `WSL_HOME` 是否提供，创建对应类型的 volume
-  - 有 `WSL_HOME`：创建 bind mount volume，直接指向 WSL_HOME 目录
-  - 无 `WSL_HOME`：创建普通 named volume，数据存储在 Docker 管理的区域
-- **后续启动**：volume 已存在，跳过创建，直接使用
-
-**切换模式**：
-- 删除 volume：`docker volume rm dev-home`
-- 重启容器，会根据当前 `WSL_HOME` 重新创建对应类型的 volume
-
-**在 WSL 中使用**（推荐）：
+**设置方式**：在 `.devcontainer/.env` 文件中设置
 
 ```bash
-# 临时设置（当前会话）
-export WSL_HOME=~
+# 复制示例文件
+cp .devcontainer/.env.example .devcontainer/.env
 
-# 或在 .bashrc / .zshrc 中永久设置
-echo 'export WSL_HOME=~' >> ~/.bashrc
+# 编辑 .env 文件
+WSL_HOME=/home/<username>
 ```
 
-**在 Windows 中使用**：
-
-```powershell
-# 方式一：临时设置（当前 PowerShell 会话）
-$env:WSL_HOME = "\\wsl.localhost\Ubuntu\home\<username>"
-
-# 方式二：永久设置（系统环境变量）
-[Environment]::SetEnvironmentVariable("WSL_HOME", "\\wsl.localhost\Ubuntu\home\<username>", "User")
-
-# 方式三：用户配置文件（$PROFILE）
-echo '$env:WSL_HOME = "\\wsl.localhost\Ubuntu\home\<username>"' >> $PROFILE
-```
+**工作原理**：
+- **有 WSL_HOME**：bind mount 到指定目录（直接访问 WSL 文件）
+- **无 WSL_HOME**：使用 named volume（数据在 Docker 管理区域）
+- compose.yaml 会自动处理，无需手动创建 volume
 
 ## 配置管理
 
