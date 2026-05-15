@@ -39,6 +39,7 @@ RUN mkdir -p ~/.cache-volumes/{npm,pnpm,pip,poetry,vscode-extensions,tmux/plugin
 
 # 配置 tmux（持久化到 dev-cache）
 RUN ln -sf ~/.cache-volumes/tmux ~/.tmux \
+    && mkdir -p ~/.tmux/plugins \
     && git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm \
     && cat > ~/.tmux.conf << 'EOF'
 # tmux 基础配置
@@ -65,6 +66,8 @@ EOF
 
 # 配置 zsh（持久化到 dev-cache）
 RUN ln -sf ~/.cache-volumes/zsh ~/.zsh \
+    && mkdir -p ~/.zsh/zsh-autosuggestions \
+    && mkdir -p ~/.zsh/zsh-syntax-highlighting \
     && git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/zsh-autosuggestions \
     && git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/zsh-syntax-highlighting \
     && cat >> ~/.zshrc << 'EOF'
