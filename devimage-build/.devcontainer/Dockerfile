@@ -38,10 +38,10 @@ RUN mkdir -p ~/.cache-volumes/{npm,pnpm,pip,poetry,vscode-extensions,tmux/plugin
     && ln -sf ~/.cache-volumes/vscode-extensions ~/.vscode-server/extensions
 
 # 配置 tmux（持久化到 dev-cache）
-RUN ln -sf ~/.cache-volumes/tmux ~/.tmux \
-    && mkdir -p ~/.tmux/plugins \
-    && git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm \
-    && cat > ~/.tmux.conf << 'EOF'
+# 先在目标目录操作，最后创建符号链接
+RUN mkdir -p ~/.cache-volumes/tmux/plugins \
+    && git clone https://github.com/tmux-plugins/tpm ~/.cache-volumes/tmux/plugins/tpm \
+    && cat > ~/.cache-volumes/tmux/.tmux.conf << 'EOF'
 # tmux 基础配置
 set -g @plugin 'tmux-plugins/tpm'
 set -g @plugin 'tmux-plugins/tmux-sensible'
@@ -63,13 +63,15 @@ bind j select-pane -D
 bind k select-pane -U
 bind l select-pane -R
 EOF
+    && ln -sf ~/.cache-volumes/tmux ~/.tmux \
+    && ln -sf ~/.cache-volumes/tmux/.tmux.conf ~/.tmux.conf
 
 # 配置 zsh（持久化到 dev-cache）
-RUN ln -sf ~/.cache-volumes/zsh ~/.zsh \
-    && mkdir -p ~/.zsh/zsh-autosuggestions \
-    && mkdir -p ~/.zsh/zsh-syntax-highlighting \
-    && git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/zsh-autosuggestions \
-    && git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/zsh-syntax-highlighting \
+# 先在目标目录操作，最后创建符号链接
+RUN mkdir -p ~/.cache-volumes/zsh/zsh-autosuggestions \
+    && mkdir -p ~/.cache-volumes/zsh/zsh-syntax-highlighting \
+    && git clone https://github.com/zsh-users/zsh-autosuggestions ~/.cache-volumes/zsh/zsh-autosuggestions \
+    && git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.cache-volumes/zsh/zsh-syntax-highlighting \
     && cat >> ~/.zshrc << 'EOF'
 
 # zsh 主题（随机）
@@ -91,6 +93,7 @@ alias tn='tmux new -s'
 alias tl='tmux ls'
 alias tk='tmux kill-session -t'
 EOF
+    && ln -sf ~/.cache-volumes/zsh ~/.zsh
 
 # 安装 AI Agents
 RUN npm install -g @anthropic-ai/claude-code \
