@@ -130,11 +130,11 @@ tn ai
 claude
 
 # 分屏并运行 codex
-Ctrl-a %          # 垂直分屏
+Ctrl-a |          # 垂直分屏
 codex             # 在新窗格运行
 
 # 切换窗格
-Ctrl-a <方向键>
+Ctrl-a h/j/k/l    # 左/下/上/右
 
 # 分离会话
 Ctrl-a d
@@ -156,27 +156,35 @@ tl
 
 | 快捷键 | 功能 |
 |--------|------|
-| `Ctrl-a %` | 垂直分屏 |
-| `Ctrl-a "` | 水平分屏 |
-| `Ctrl-a <方向键>` | 切换窗格 |
+| `Ctrl-a \|` | 垂直分屏 |
+| `Ctrl-a -` | 水平分屏 |
+| `Ctrl-a h` | 切换到左侧窗格 |
+| `Ctrl-a j` | 切换到下方窗格 |
+| `Ctrl-a k` | 切换到上方窗格 |
+| `Ctrl-a l` | 切换到右侧窗格 |
 | `Ctrl-a d` | 分离会话 |
 | `Ctrl-a c` | 创建新窗口 |
 | `Ctrl-a n/p` | 切换窗口 |
 
 ### 配置持久化
 
-- tmux 配置文件：`~/.tmux.conf`
-- tmux 插件目录：`~/.tmux/plugins/`
+- tmux 配置文件：`~/.tmux.conf` → `~/.cache-volumes/tmux/.tmux.conf`
+- tmux 插件目录：`~/.tmux/plugins/` → `~/.cache-volumes/tmux/plugins/`
 - 以上配置存储在 `dev-cache` volume 中，重建容器不会丢失
 
 ### 自定义配置
 
-```bash
-# 编辑配置文件
-vim ~/.tmux.conf
+修改 `devimage-build/.devcontainer/configs/tmux.conf` 后重新构建镜像：
 
-# 安装新插件（在 tmux 会话中）
-Ctrl-a I         # 按 Ctrl-a 然后按大写 I
+```bash
+cd devimage-build
+devcontainer build --workspace-folder .
+```
+
+或在容器内临时修改（重建容器会重置）：
+
+```bash
+vim ~/.tmux.conf
 ```
 
 ## 工作目录说明

@@ -110,8 +110,10 @@ AI agent 配置存储位置：
 
 ```bash
 tn ai              # 创建会话
-Ctrl-a %           # 分屏
+Ctrl-a |           # 垂直分屏
+Ctrl-a -           # 水平分屏
 claude / codex / gemini  # 在各窗格运行
+Ctrl-a h/j/k/l     # 切换窗格（左/下/上/右）
 Ctrl-a d           # 分离会话
 ta ai              # 重新连接
 ```
