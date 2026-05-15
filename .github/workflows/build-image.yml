@@ -29,38 +29,19 @@ jobs:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=tag
-            type=raw,value=latest
-
-      - name: Build and push image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./devimage-build
-          file: ./devimage-build/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push image with devcontainer
+      - name: Build and push image with devcontainer CLI
         run: |
           # Install devcontainer CLI
           npm install -g @devcontainers/cli
           
-          # Build image with features
-          devcontainer build --workspace-folder ./devimage-build --image-name ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-full
-          
-          # Push image
-          docker push ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-full
+          # Build image with features (multi-arch)
+          devcontainer build \
+            --workspace-folder ./devimage-build \
+            --image-name ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} \
+            --platform linux/amd64,linux/arm64 \
+            --push
           
           # Tag and push latest
-          docker tag ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-full ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest-full
-          docker push ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest-full
+          docker buildx imagetools create \
+            --tag ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest \
+            ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
