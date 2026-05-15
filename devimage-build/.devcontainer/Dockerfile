@@ -40,9 +40,8 @@ RUN mkdir -p ~/.cache-volumes/{npm,pnpm,pip,poetry,vscode-extensions,tmux/plugin
 # 配置 tmux（持久化到 dev-cache）
 RUN mkdir -p ~/.cache-volumes/tmux/plugins \
     && git clone https://github.com/tmux-plugins/tpm ~/.cache-volumes/tmux/plugins/tpm
-COPY configs/tmux.conf /tmp/tmux.conf
-RUN mv /tmp/tmux.conf ~/.cache-volumes/tmux/.tmux.conf \
-    && ln -sf ~/.cache-volumes/tmux ~/.tmux \
+COPY --chown=vscode:vscode configs/tmux.conf /home/vscode/.cache-volumes/tmux/.tmux.conf
+RUN ln -sf ~/.cache-volumes/tmux ~/.tmux \
     && ln -sf ~/.cache-volumes/tmux/.tmux.conf ~/.tmux.conf
 
 # 配置 zsh（持久化到 dev-cache）
@@ -50,6 +49,7 @@ RUN mkdir -p ~/.cache-volumes/zsh/zsh-autosuggestions \
     && mkdir -p ~/.cache-volumes/zsh/zsh-syntax-highlighting \
     && git clone https://github.com/zsh-users/zsh-autosuggestions ~/.cache-volumes/zsh/zsh-autosuggestions \
     && git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.cache-volumes/zsh/zsh-syntax-highlighting
-COPY configs/zshrc-addon /tmp/zshrc-addon
+COPY --chown=vscode:vscode configs/zshrc-addon /tmp/zshrc-addon
 RUN cat /tmp/zshrc-addon >> ~/.zshrc \
+    && rm /tmp/zshrc-addon \
     && ln -sf ~/.cache-volumes/zsh ~/.zsh
