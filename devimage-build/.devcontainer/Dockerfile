@@ -63,7 +63,8 @@ bind j select-pane -D
 bind k select-pane -U
 bind l select-pane -R
 EOF
-    && ln -sf ~/.cache-volumes/tmux ~/.tmux \
+
+RUN ln -sf ~/.cache-volumes/tmux ~/.tmux \
     && ln -sf ~/.cache-volumes/tmux/.tmux.conf ~/.tmux.conf
 
 # 配置 zsh（持久化到 dev-cache）
@@ -93,7 +94,8 @@ alias tn='tmux new -s'
 alias tl='tmux ls'
 alias tk='tmux kill-session -t'
 EOF
-    && ln -sf ~/.cache-volumes/zsh ~/.zsh
+
+RUN ln -sf ~/.cache-volumes/zsh ~/.zsh
 
 # 安装 AI Agents
 RUN npm install -g @anthropic-ai/claude-code \
