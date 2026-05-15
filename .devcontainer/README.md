@@ -183,28 +183,33 @@ Ctrl-a I         # 按 Ctrl-a 然后按大写 I
 
 ### 项目挂载位置
 
-VS Code Dev Containers 会自动将项目目录挂载到容器内：
+项目目录通过 `compose.yaml` 手动配置挂载：
 
-- **挂载位置**：`/workspaces/<project-name>`
-- **工作目录**：自动设置为挂载位置
+- **挂载位置**：`/home/vscode/workspace`
+- **配置方式**：`compose.yaml` 中的 `..:/home/vscode/workspace`
 
-**示例**：
-- 打开 `C:\Users\<username>\projects\my-app`
-- 容器内挂载到：`/workspaces/my-app`
-- 工作目录自动设置为：`/workspaces/my-app`
+**说明**：
+- `..` 表示项目根目录（`.devcontainer` 的上级目录）
+- 所有项目文件在容器内可通过 `/home/vscode/workspace` 访问
 
 ### 用户主目录
 
-`/home/vscode` 是用户主目录，用于存放：
+`/home/vscode` 是用户主目录，包含：
 
-- 配置文件（`.zshrc`、`.gitconfig` 等）
-- 缓存目录（`.npm`、`.cache` 等）
-- AI agent 配置链接（`.claude`、`.codex`、`.gemini`）
+**持久化内容**（通过 dev-cache volume）：
+- 缓存目录（`.npm`、`.cache/pip` 等）
+- tmux 配置和插件（`~/.tmux`）
+- zsh 插件（`~/.zsh`）
+- VS Code 扩展（`~/.vscode-server/extensions`）
 
-**与项目目录的关系**：
-- 项目代码：`/workspaces/<project-name>`（自动挂载）
-- 用户配置：`/home/vscode`（持久化）
-- 两者独立，互不影响
+**非持久化内容**（重建容器会重置）：
+- `.zshrc`（由镜像提供默认配置）
+- `.gitconfig`（由镜像提供默认配置）
+- 其他用户配置文件
+
+**AI agent 配置**：
+- 通过符号链接从 `wsl-home` 目录链接
+- 持久化在 `dev-home` volume 或 WSL 目录中
 
 ## 端口转发说明
 
@@ -272,13 +277,17 @@ docker pull xiao806852034/ai-dev-container:latest
 
 ### 修改资源限制
 
-编辑 `devcontainer.json`：
+编辑 `compose.yaml`：
 
-```json
-"runArgs": [
-  "--memory=16g",    // 内存限制
-  "--cpus=8"         // CPU 核心数
-]
+```yaml
+services:
+  devcontainer:
+    deploy:
+      resources:
+        limits:
+          memory: 16G    # 内存限制
+        reservations:
+          memory: 8G     # 内存预留
 ```
 
 ### 添加端口转发
@@ -330,49 +339,54 @@ sudo chown -R 1000:1000 your-project/
 
 ### Q: 如何保留数据？
 
-所有缓存统一存储在 `dev-cache` named volume 中：
+**持久化数据**：
 
+1. **项目代码**：存储在宿主机，不受容器影响
+2. **缓存和插件**：存储在 `dev-cache` volume
+3. **AI agent 配置**：存储在 `dev-home` volume 或 WSL 目录（取决于 WSL_HOME 配置）
+
+**非持久化数据**（重建容器会重置）：
+- `.zshrc`、`.gitconfig` 等用户配置文件
+- 这些文件由镜像提供默认配置
+
+**管理缓存**：
+```bash
+# 查看缓存大小
+docker volume inspect dev-cache
+
+# 清理缓存
+docker volume rm dev-cache
+
+# 清理 AI agent 配置
+docker volume rm dev-home
 ```
-dev-cache/
-├── npm/              # npm 缓存
-├── pnpm/             # pnpm store
-├── pip/              # pip 缓存
-├── poetry/           # Poetry 缓存
-├── vscode-extensions/ # VS Code 扩展
-├── tmux/             # tmux 配置
-└── zsh/              # zsh 插件
-```
-
-其他持久化数据：
-- 项目代码
-- AI agent 配置（从 WSL 挂载）
-
-**优势**：
-- 单个 named volume，便于管理
-- 重建容器不会丢失缓存
-- 可通过 `docker volume inspect dev-cache` 查看位置
 
 ### Q: WSL home 挂载失败？
 
 检查以下几点：
 
-1. **确认 WSL_HOME 环境变量已设置**：
-   ```powershell
-   echo $env:WSL_HOME
+1. **确认 .env 文件已创建**：
+   ```bash
+   ls .devcontainer/.env
    ```
 
-2. **确认 WSL 正在运行**：
-   ```powershell
+2. **确认 WSL_HOME 已设置**：
+   ```bash
+   cat .devcontainer/.env
+   ```
+
+3. **确认 WSL 正在运行**：
+   ```bash
    wsl --list --verbose
    ```
 
-3. **确认路径正确**：
-   ```powershell
-   # 测试路径是否存在
-   Test-Path $env:WSL_HOME
+4. **确认路径正确**：
+   ```bash
+   # 在 WSL 中测试路径是否存在
+   ls /home/<username>
    ```
 
-如果路径不存在，检查 WSL 发行版名称是否为 `Ubuntu`。
+如果路径不存在，检查 WSL 中的用户名是否正确。
 
 ## 隔离说明
 
