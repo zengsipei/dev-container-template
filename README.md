@@ -10,6 +10,7 @@ dev-container-template/
 │   ├── devcontainer.json       # 主配置
 │   ├── compose.yaml            # Docker Compose 配置
 │   ├── post-create.sh          # 初始化脚本
+│   ├── hapi-up.sh              # HAPI Local Hub 后台拉起脚本
 │   ├── .env.example            # 环境变量示例
 │   └── README.md               # 详细使用文档
 │
@@ -59,6 +60,7 @@ WSL_HOME=/home/<username>
 - Claude Code (`claude`)
 - OpenAI Codex (`codex`)
 - Gemini CLI (`gemini`)
+- HAPI (`hapi`) - Local Hub，远程访问容器内的 coding agent（见 [HAPI Local Hub](#hapi-local-hub)）
 
 ### 开发环境
 - Node.js LTS + pnpm
@@ -103,6 +105,41 @@ AI agent 配置存储位置：
 
 - **有 `WSL_HOME`**：bind mount 到 WSL 目录
 - **无 `WSL_HOME`**：普通 named volume
+
+## HAPI Local Hub
+
+[HAPI](https://github.com/tiann/hapi)（`@twsxtd/hapi`）让你从手机/浏览器远程访问容器里的 coding agent。本模板把它作为 **Local Hub** 运行：在容器内启动，仅绑定宿主机回环，**模板自身不会把它暴露到 LAN 或公网**。
+
+**工作方式**：
+- **Startup Install**：容器创建时通过 `npm install -g @twsxtd/hapi` 安装/更新，始终保持最新（不烘焙进镜像）。
+- **Agent Home 持久化**：状态目录 `~/.hapi`（设置、令牌、SQLite、runner 状态、日志）链接到 `dev-home` volume，重建容器不丢失。
+- **自动拉起**：hub 在后台监听 `0.0.0.0:3006`（容器内），端口就绪后自动启动 runner。整个过程不阻塞容器创建。
+- **Host Tunnel Port**：`compose.yaml` 将端口绑定为 `127.0.0.1:3006:3006`，只有宿主机本机可访问。
+
+**首次使用：配置令牌**
+
+HAPI 需要 `CLI_API_TOKEN` 才能工作。在容器内执行一次（令牌持久化在 `~/.hapi`，重建容器不丢失）：
+
+```bash
+hapi auth login        # 交互式输入并保存令牌
+hapi doctor            # 诊断 / 查看 hub 与 runner 状态
+hapi runner status     # 查看 runner 状态
+```
+
+配置令牌后重建容器（或手动运行 `bash .devcontainer/hapi-up.sh`）即可自动拉起。日志位于 `~/.hapi/logs/`（`hub.log`、`runner.log`）。
+
+**公开访问（用户自行决定）**
+
+模板只把 hub 绑定到宿主回环。若需从公网访问，在**宿主机**侧自行配置隧道，例如 Cloudflare Tunnel：
+
+```bash
+# 在宿主机（不是容器内）运行，将本机 3006 暴露为一个公网地址
+cloudflared tunnel --url http://127.0.0.1:3006
+```
+
+> ⚠️ 公开暴露是一次有意的用户操作。请确保已配置好 `CLI_API_TOKEN` 等访问控制后再开启隧道。
+
+详细说明见 [.devcontainer/README.md](.devcontainer/README.md#hapi-local-hub)
 
 ## tmux 工作流
 

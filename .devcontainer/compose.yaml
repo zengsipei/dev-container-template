@@ -10,6 +10,12 @@ services:
       # 统一缓存目录
       - dev-cache:/home/vscode/.cache-volumes
 
+    ports:
+      # HAPI Local Hub：仅绑定宿主机回环（Host Tunnel Port）。
+      # 模板自身不把 HAPI 暴露到 LAN/公网；公开访问需用户自行在宿主侧
+      # 配置 Cloudflare Tunnel 等隧道软件。
+      - "127.0.0.1:3006:3006"
+
     # 保持容器运行
     command: sleep infinity
 

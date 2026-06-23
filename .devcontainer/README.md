@@ -17,6 +17,7 @@
 - **Claude Code** - Anthropic 的 AI 编程助手
 - **OpenAI Codex** - OpenAI 的代码生成工具
 - **Gemini CLI** - Google Gemini 命令行工具
+- **HAPI** - Local Hub，远程访问容器内的 coding agent（见 [HAPI Local Hub](#hapi-local-hub)）
 
 ### 开发环境
 - Node.js LTS + pnpm
@@ -99,6 +100,7 @@ AI agent 配置存储位置：
   - `~/.claude` → `/home/vscode/wsl-home/.claude`
   - `~/.codex` → `/home/vscode/wsl-home/.codex`
   - `~/.gemini` → `/home/vscode/wsl-home/.gemini`
+  - `~/.hapi` → `/home/vscode/wsl-home/.hapi`（HAPI 状态目录，见下文）
 
 **Volume 类型**（首次创建时决定）：
 - **有 `WSL_HOME`**：bind mount，直接使用 WSL_HOME 目录
@@ -115,6 +117,80 @@ docker volume rm dev-home
 
 # 重启容器，会根据当前 WSL_HOME 重新创建
 ```
+
+## HAPI Local Hub
+
+[HAPI](https://github.com/tiann/hapi)（npm 包 `@twsxtd/hapi`）是一个让你从手机或浏览器远程访问 coding agent 的工具。本模板把它作为 **Local Hub** 运行：进程在容器内启动，可从宿主机本机访问，但**模板自身不会把它发布到 LAN 或公网**——公开访问是用户的一次有意操作。
+
+### 行为概览
+
+| 方面 | 做法 |
+|------|------|
+| 安装方式 | **Startup Install**：`post-create.sh` 里 `npm install -g @twsxtd/hapi --registry=https://registry.npmjs.org`，每次创建容器都安装/更新，保持最新（不烘焙进镜像） |
+| 状态持久化 | `~/.hapi` 链接到 `dev-home` volume 的 `.hapi` 目录，与 `.claude`/`.codex`/`.gemini` 一致 |
+| hub 启动 | 后台监听 `0.0.0.0:3006`（容器内全接口，便于 Docker 端口映射） |
+| runner 启动 | hub 端口就绪后自动启动 runner，工作目录为 `/home/vscode/workspace` |
+| 宿主映射 | `compose.yaml`：`127.0.0.1:3006:3006`（Host Tunnel Port，仅本机回环） |
+| 端口转发 | `devcontainer.json` 的 `forwardPorts` 含 `3006` |
+| 日志 | `~/.hapi/logs/hub.log`、`~/.hapi/logs/runner.log` |
+
+### 启动流程
+
+容器创建时，`post-create.sh`：
+
+1. `mkdir -p /home/vscode/wsl-home/.hapi` 并 `ln -sfn ... ~/.hapi`（持久化）
+2. 安装/更新 HAPI
+3. 后台调用 `.devcontainer/hapi-up.sh`（不阻塞容器创建）
+
+`hapi-up.sh` 负责实际拉起，且**幂等**：
+
+- hub：先用 `/dev/tcp` 探测 3006 端口，已被占用则跳过启动
+- runner：`hapi runner start` 会先停掉已有 runner 再启动（内置锁文件），重复运行不会产生重复进程
+
+可手动重新拉起：
+
+```bash
+bash .devcontainer/hapi-up.sh
+```
+
+### 首次使用：配置令牌
+
+HAPI 需要 `CLI_API_TOKEN` 才能正常工作。在容器内执行一次即可（令牌保存在 `~/.hapi`，已持久化，重建容器不丢失）：
+
+```bash
+hapi auth login        # 交互式输入并保存令牌
+hapi auth status       # 查看认证状态
+hapi doctor            # 系统诊断
+hapi runner status     # 查看 runner 状态
+```
+
+未配置令牌时 hub 可能直接退出，启动脚本仍保持非阻塞，相关信息写入 `~/.hapi/logs/hub.log`。配置好令牌后重建容器或重新运行 `hapi-up.sh` 即可。
+
+### 自定义
+
+通过环境变量调整（在调用 `hapi-up.sh` 前设置）：
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `HAPI_LISTEN_HOST` | `0.0.0.0` | hub 在容器内监听的接口 |
+| `HAPI_LISTEN_PORT` | `3006` | hub 端口（同时需同步 `compose.yaml` 与 `forwardPorts`） |
+| `HAPI_WORKSPACE_ROOT` | `~/workspace` | runner 创建新会话的工作目录 |
+
+### 公开访问：宿主侧 Cloudflare Tunnel
+
+模板只把 hub 绑定到 `127.0.0.1:3006`。若要从公网访问，在**宿主机**（不是容器内）自行配置隧道。以 Cloudflare Tunnel 为例：
+
+```bash
+# 快速试用（临时随机域名）
+cloudflared tunnel --url http://127.0.0.1:3006
+
+# 或绑定到自有域名的命名隧道
+cloudflared tunnel create hapi
+cloudflared tunnel route dns hapi hapi.example.com
+cloudflared tunnel run --url http://127.0.0.1:3006 hapi
+```
+
+> ⚠️ 公开暴露是一次有意的用户操作，不在模板职责范围内。开启隧道前请确认已配置 `CLI_API_TOKEN` 等访问控制。
 
 ## tmux 使用指南
 
@@ -247,6 +323,7 @@ vim ~/.tmux.conf
 ├── devcontainer.json    # 主配置（运行时配置）
 ├── compose.yaml         # Docker Compose 配置
 ├── post-create.sh       # 初始化脚本（容器首次创建时执行）
+├── hapi-up.sh           # HAPI Local Hub 后台拉起脚本（由 post-create.sh 调用）
 ├── .env.example         # 环境变量示例
 └── README.md            # 本文件
 ```
