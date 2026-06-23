@@ -27,3 +27,21 @@ _Avoid_: Public port, forwarded port
 **Local Hub**:
 A remote-control process started inside the development container that is reachable from the host machine but not published beyond the host unless the user adds a tunnel.
 _Avoid_: Public service, relay
+
+**Release Tag**:
+A `v*` git tag whose push publishes an immutable Prebuilt Image at `:vX.Y.Z`. The unit of release for the template.
+_Avoid_: version, build number
+
+**Latest Pointer**:
+The `:latest` image tag, defined as an alias for the most recent Release Tag. Moved only by a Release Tag push.
+_Avoid_: newest, current
+
+**Release Trigger**:
+An event that publishes the Prebuilt Image — either a Release Tag push or a Manual Rebuild naming an existing Release Tag. Excludes pushes to `main`.
+_Avoid_: build trigger
+
+**Manual Rebuild**:
+A `workflow_dispatch` run that takes a Release Tag as input and republishes that exact version. Does not create a new version and does not move the Latest Pointer.
+_Avoid_: rerun, redeploy
+
+See [docs/adr/0001-image-release-contract.md](docs/adr/0001-image-release-contract.md) for the release contract that owns these terms.

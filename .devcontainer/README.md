@@ -330,9 +330,9 @@ vim ~/.tmux.conf
 
 ## 预构建镜像
 
-此项目使用预构建镜像 `xiao806852034/ai-dev-container:latest`，包含所有工具和配置。
+默认使用上游 Prebuilt Image `xiao806852034/ai-dev-container:latest`（可在 `.env` 设 `DOCKERHUB_USERNAME`/`IMAGE_NAME` 改为自己的）。镜像构建源码见 `devimage-build/` 目录。
 
-**镜像构建源码**：见 `devimage-build/` 目录
+发布行为（`:latest` 指向什么、要不要 pin 版本）由发布契约定义，见 [docs/adr/0001-image-release-contract.md](../docs/adr/0001-image-release-contract.md)。
 
 **优势**：
 - 无需本地构建，启动速度快
@@ -341,11 +341,10 @@ vim ~/.tmux.conf
 
 **更新镜像**：
 ```bash
-# 拉取最新镜像
+# 拉取最新（Latest Pointer）
 docker pull xiao806852034/ai-dev-container:latest
 
-# 重建容器
-# VS Code: F1 → Dev Containers: Rebuild Container
+# 重建容器：VS Code F1 → Dev Containers: Rebuild Container
 ```
 
 ## 自定义配置

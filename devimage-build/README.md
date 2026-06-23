@@ -71,44 +71,41 @@ devcontainer build --workspace-folder .
 # VS Code: F1 → Dev Containers: Reopen in Container
 ```
 
-## 自动构建
+## 发布（Release）
 
-### GitHub Actions 工作流
+> 本节是 Prebuilt Image 发布的**维护者向单一散文所有者**。持久决策与 why 见
+> [docs/adr/0001-image-release-contract.md](../docs/adr/0001-image-release-contract.md)；
+> 机制的可执行真相是 [`.github/workflows/build-image.yml`](../.github/workflows/build-image.yml)。
+> 其它文档只链接到这里，不复述发布事实。
 
-`.github/workflows/build-image.yml` 配置了自动构建：
+### 契约速览
 
-**触发条件**：
-- 推送 tag（格式：`v*`）
-- 推送到 main 分支
+- **Release Trigger**：镜像只由两种事件发布——push 一个 `v*` **Release Tag**，或一次指名已存在 tag 的 **Manual Rebuild**（`workflow_dispatch`）。**排除** main 分支 push。
+- **Latest Pointer**：`:latest` ＝ 最近一个 Release Tag 的别名；**只有 Release Tag push 会移动它**，Manual Rebuild 不会。
+- **慢变基线**：镜像只烘焙慢变内容；AI Agent Toolchain 走 Startup Install（容器创建时装），不进镜像。所以发布是低频、有意为之的动作。
 
-**构建步骤**：
-1. 检出代码
-2. 设置 QEMU（多架构支持）
-3. 设置 Docker Buildx
-4. 登录 Docker Hub
-5. 构建并推送镜像
+### 前置配置
 
-### 配置 GitHub Secrets
+在 GitHub 仓库 **Settings → Secrets and variables → Actions** 配置：
 
-在 GitHub 仓库设置中添加：
+| 类型 | 名称 | 必需 | 说明 |
+|------|------|------|------|
+| Secret | `DOCKER_HUB_TOKEN` | 是 | Docker Hub Access Token（必须是 secret） |
+| Variable | `DOCKERHUB_USERNAME` | 否 | 不设则用默认 `xiao806852034`；fork 发到自己 registry 时设置 |
+| Variable | `IMAGE_NAME` | 否 | 不设则用默认 `ai-dev-container` |
 
-- `DOCKER_HUB_USERNAME`：Docker Hub 用户名
-- `DOCKER_HUB_TOKEN`：Docker Hub Access Token
-
-### 触发构建
-
-**方式一：推送 tag**
+### 发布新版本（会移动 :latest）
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-**方式二：推送到 main**
+push 后 workflow 构建多架构 `:(v1.0.0)` 并把 `:latest` 指向它。
 
-```bash
-git push origin main
-```
+### Manual Rebuild（重建已存在版本，不动 :latest）
+
+GitHub **Actions → Build and Push Docker Image → Run workflow**，在 `tag` 输入框填一个已存在的 Release Tag（如 `v1.0.0`）。用于重跑失败的发布构建；**不**新建版本、**不**移动 `:latest`（从分支误触发分支构建的漏洞已就此堵死）。
 
 ## 自定义修改
 
@@ -259,7 +256,7 @@ RUN rm -rf /var/lib/apt/lists/*
 
 ### 多架构支持
 
-使用 Docker Buildx 构建多架构镜像：
+QEMU + Docker Buildx 提供多架构能力，实际构建与推送由 devcontainer CLI 完成（详见 workflow）：
 
 ```yaml
 - name: Set up QEMU
@@ -268,10 +265,14 @@ RUN rm -rf /var/lib/apt/lists/*
 - name: Set up Docker Buildx
   uses: docker/setup-buildx-action@v3
 
-- name: Build and push
-  uses: docker/build-push-action@v5
-  with:
-    platforms: linux/amd64,linux/arm64
+- name: Build and push the Release Tag image
+  run: |
+    npm install -g @devcontainers/cli
+    devcontainer build \
+      --workspace-folder ./devimage-build \
+      --image-name "$DOCKERHUB_USERNAME/$IMAGE_NAME:$VERSION" \
+      --platform linux/amd64,linux/arm64 \
+      --push
 ```
 
 ## 常见问题

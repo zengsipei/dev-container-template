@@ -157,11 +157,11 @@ ta ai              # 重新连接
 
 详细说明见 [.devcontainer/README.md](.devcontainer/README.md)
 
-## 镜像构建
+## 镜像构建与发布
 
-预构建镜像源码在 `devimage-build/` 目录，通过 GitHub Actions 自动构建。
+预构建镜像源码在 `devimage-build/` 目录，通过 GitHub Actions 按 Release Tag 契约发布。
 
-详细说明见 [devimage-build/README.md](devimage-build/README.md)
+发布契约（触发、`:latest` 语义、pin 策略）见 [docs/adr/0001-image-release-contract.md](docs/adr/0001-image-release-contract.md)；维护者发版操作见 [devimage-build/README.md](devimage-build/README.md)。
 
 ## 自定义
 
@@ -175,16 +175,14 @@ ta ai              # 重新连接
 
 编辑 `devimage-build/.devcontainer/Dockerfile`，添加安装命令。
 
-### 重新构建镜像
+### 发布镜像
+
+镜像发布遵循 Release Tag 契约——push 一个 `v*` tag 即构建并移动 `:latest`。详见 [发布契约](docs/adr/0001-image-release-contract.md) 与 [devimage-build/README.md](devimage-build/README.md)。本地构建仅供测试，不发布：
 
 ```bash
 cd devimage-build
-devcontainer build --workspace-folder .
-docker tag <image-id> xiao806852034/ai-dev-container:latest
-docker push xiao806852034/ai-dev-container:latest
+devcontainer build --workspace-folder .   # 本地测试，不推送、不动 :latest
 ```
-
-或推送 tag 到 GitHub，自动触发构建。
 
 ## 常见问题
 

@@ -1,23 +1,34 @@
+# Prebuilt Image release mechanism. Contract: docs/adr/0001-image-release-contract.md
+# Release Trigger: a Release Tag push (v*) or a Manual Rebuild (workflow_dispatch naming an existing tag).
+# No main-branch release. Only a Release Tag push moves the Latest Pointer (:latest).
 name: Build and Push Docker Image
 
 on:
   workflow_dispatch:
-    
+    inputs:
+      tag:
+        description: 'Existing Release Tag to rebuild, e.g. v1.0.0 (Manual Rebuild; does NOT move :latest)'
+        required: true
+        type: string
   push:
     tags:
       - 'v*'
 
 env:
-  IMAGE_NAME: ai-dev-container
-  DOCKERHUB_USERNAME: xiao806852034
+  # Forkable: set repo Variables to publish to your own registry. Defaults keep the upstream image.
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || 'ai-dev-container' }}
+  DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME || 'xiao806852034' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout code
+      - name: Checkout code (the Release Tag being built)
         uses: actions/checkout@v4
+        with:
+          # tag push -> the tag ref; Manual Rebuild -> the tag named in the input
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -31,19 +42,34 @@ jobs:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build and push image with devcontainer CLI
+      - name: Build and push the Release Tag image
+        env:
+          VERSION: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
+          # A Manual Rebuild must name an existing Release Tag (v*), never a branch.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            case "$VERSION" in
+              v*) ;;
+              *) echo "::error::workflow_dispatch input 'tag' must be a Release Tag like v1.0.0 (got '$VERSION')"; exit 1 ;;
+            esac
+          fi
+
           # Install devcontainer CLI
           npm install -g @devcontainers/cli
-          
-          # Build image with features (multi-arch)
+
+          # Build image with features (multi-arch) and push the immutable :$VERSION tag
           devcontainer build \
             --workspace-folder ./devimage-build \
-            --image-name ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} \
+            --image-name "$DOCKERHUB_USERNAME/$IMAGE_NAME:$VERSION" \
             --platform linux/amd64,linux/arm64 \
             --push
-          
-          # Tag and push latest
+
+      - name: Move the Latest Pointer (only on a Release Tag push)
+        if: github.event_name == 'push'
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          # :latest is an alias for the most recent Release Tag. A Manual Rebuild never reaches this step.
           docker buildx imagetools create \
-            --tag ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest \
-            ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            --tag "$DOCKERHUB_USERNAME/$IMAGE_NAME:latest" \
+            "$DOCKERHUB_USERNAME/$IMAGE_NAME:$VERSION"

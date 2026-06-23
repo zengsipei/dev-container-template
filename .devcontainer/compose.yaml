@@ -1,7 +1,9 @@
 services:
   devcontainer:
-    image: xiao806852034/ai-dev-container:latest
-    # pull_policy: always # 此处有 bug，VS Code 生成临时 compose 文件，把 image 指向这个本地镜像，然后远程没有
+    # 镜像引用参数化：默认即上游镜像，fork 者可在 .devcontainer/.env 设 DOCKERHUB_USERNAME/IMAGE_NAME。
+    # 发布契约见 docs/adr/0001-image-release-contract.md（默认消费 Latest Pointer :latest）。
+    image: ${DOCKERHUB_USERNAME:-xiao806852034}/${IMAGE_NAME:-ai-dev-container}:latest
+    # pull_policy: always # 已知 bug（见 ADR 0001「已知缺口」/ follow-up issue）：VS Code 生成临时 compose 文件把 image 指向本地镜像，远程拉不到
     volumes:
       - ..:/home/vscode/workspace
 
