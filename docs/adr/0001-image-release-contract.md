@@ -36,6 +36,11 @@
 - 文档：`devimage-build/README.md` 发布节重写为真相、修掉三处漂移；根 README 与 `.devcontainer/README.md` 的镜像章节缩为链接。
 - fork 者：在 repo Settings → Variables 设 `DOCKERHUB_USERNAME`/`IMAGE_NAME`，在 `.env` 设同名变量，并配 `DOCKER_HUB_TOKEN` secret，即可发布到自己的 registry，无需改 workflow。
 
-### 已知缺口（不在本契约内，单独跟踪）
+### 消费端拉取机制（Issue #6，已解决）
 
-- `compose.yaml` 的 `pull_policy: always` 因 VS Code 生成临时 compose 文件把 `image` 指向本地镜像而被注释——消费 `:latest` 时"如何真正拉到更新"的机制问题。作为 ready-for-agent follow-up issue 单独处理，不阻塞本契约。
+`:latest` 消费者「rebuild 如何真正拉到更新」的问题已解决，方式与本契约一致：
+
+- 不在 `compose.yaml` 用 `pull_policy: always`——VS Code 生成临时合并 compose 时会把 service 的 `image` 改写成本地派生镜像引用，该策略会去 registry 拉一个只存在于本地的名字而失败。
+- 改由 `devcontainer.json` 的 `initializeCommand` 调 `.devcontainer/pull-image.sh`，在**宿主机**上、VS Code 处理 compose / 派生构建**之前**（含每次 Rebuild）拉取真正的上游 tag；随后的派生构建 `FROM` 这个刚刷新的本地 `:latest`，于是 rebuild 跑到新发布的镜像上。
+- 仅当消费 `:latest` 时拉取；pin 到 `:vX.Y.Z`（`.env` 设 `IMAGE_TAG`）的用户跳过、不被强制拉取，保持在固定 digest。拉取失败（离线）不阻塞容器创建，回退本地缓存。
+- `compose.yaml` 的 tag 参数化为 `${IMAGE_TAG:-latest}`，与不变量①的 user/image 默认值检查不冲突。

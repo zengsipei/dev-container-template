@@ -322,6 +322,7 @@ vim ~/.tmux.conf
 .devcontainer/
 ├── devcontainer.json    # 主配置（运行时配置）
 ├── compose.yaml         # Docker Compose 配置
+├── pull-image.sh        # 宿主侧预拉取上游 :latest（由 devcontainer.json 的 initializeCommand 调用）
 ├── post-create.sh       # 初始化脚本（容器首次创建时执行）
 ├── hapi-up.sh           # HAPI Local Hub 后台拉起脚本（由 post-create.sh 调用）
 ├── .env.example         # 环境变量示例
@@ -339,13 +340,25 @@ vim ~/.tmux.conf
 - 多项目复用同一镜像
 - 统一的开发环境
 
-**更新镜像**：
-```bash
-# 拉取最新（Latest Pointer）
-docker pull xiao806852034/ai-dev-container:latest
+**更新镜像（消费 `:latest`，默认）**：
 
-# 重建容器：VS Code F1 → Dev Containers: Rebuild Container
+无需手动 `docker pull`。每次 `Dev Containers: Rebuild Container` 前，`devcontainer.json` 的
+`initializeCommand` 会在宿主侧调 `.devcontainer/pull-image.sh` 自动拉取上游 `:latest`，rebuild
+即跑到最新发布的镜像。
+
+> 为什么不用 compose 的 `pull_policy: always`：VS Code 生成临时合并 compose 时会把 `image`
+> 改写成本地派生镜像引用，该策略会去 registry 拉一个本地名而失败。`initializeCommand` 在宿主机、
+> 派生构建之前运行，拉的是真正的上游 tag，不受影响。脚本是 best-effort：离线拉取失败不阻塞容器创建。
+
+```bash
+# 一步：Rebuild Container（自动拉取 + 重建）
+# VS Code F1 → Dev Containers: Rebuild Container
 ```
+
+**pin 到具体版本（可选）**：
+
+需要可复现 / 团队统一时，在 `.devcontainer/.env` 设 `IMAGE_TAG=vX.Y.Z`。pin 后不会被自动拉取，
+容器固定在该 digest，直到改回。
 
 ## 自定义配置
 

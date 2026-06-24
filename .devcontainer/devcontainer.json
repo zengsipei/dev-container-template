@@ -5,6 +5,11 @@
   "service": "devcontainer",
   "workspaceFolder": "/home/vscode/workspace",
 
+  // 宿主侧在 rebuild/reopen 前预拉取上游 Latest Pointer，使 Rebuild 真正跑到最新发布的镜像。
+  // 放在 initializeCommand（宿主机执行）而非 compose 的 pull_policy：后者会被 VS Code 临时
+  // compose 的 image 改写破坏。pin 到 :vX.Y.Z 时脚本自动跳过。见 .devcontainer/pull-image.sh。
+  "initializeCommand": "bash .devcontainer/pull-image.sh",
+
   "postCreateCommand": "bash .devcontainer/post-create.sh",
 
   "forwardPorts": [3000, 8080, 5173, 9000, 3006],

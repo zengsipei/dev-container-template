@@ -9,6 +9,7 @@ dev-container-template/
 ├── .devcontainer/              # 使用模板（最终用户）
 │   ├── devcontainer.json       # 主配置
 │   ├── compose.yaml            # Docker Compose 配置
+│   ├── pull-image.sh           # 宿主侧预拉取上游 :latest（initializeCommand 调用）
 │   ├── post-create.sh          # 初始化脚本
 │   ├── hapi-up.sh              # HAPI Local Hub 后台拉起脚本
 │   ├── .env.example            # 环境变量示例

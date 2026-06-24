@@ -2,8 +2,11 @@ services:
   devcontainer:
     # 镜像引用参数化：默认即上游镜像，fork 者可在 .devcontainer/.env 设 DOCKERHUB_USERNAME/IMAGE_NAME。
     # 发布契约见 docs/adr/0001-image-release-contract.md（默认消费 Latest Pointer :latest）。
-    image: ${DOCKERHUB_USERNAME:-xiao806852034}/${IMAGE_NAME:-ai-dev-container}:latest
-    # pull_policy: always # 已知 bug（见 ADR 0001「已知缺口」/ follow-up issue）：VS Code 生成临时 compose 文件把 image 指向本地镜像，远程拉不到
+    # IMAGE_TAG 默认 latest（每次 rebuild 自动拉到最新基线）；pin 到具体版本时在 .env 设 IMAGE_TAG=vX.Y.Z。
+    image: ${DOCKERHUB_USERNAME:-xiao806852034}/${IMAGE_NAME:-ai-dev-container}:${IMAGE_TAG:-latest}
+    # 不在此处用 pull_policy: always —— VS Code 生成临时 compose 时会把 image 改写成本地派生镜像引用，
+    # 该策略会去 registry 拉一个本地名而失败。改用 devcontainer.json 的 initializeCommand 在宿主侧、
+    # rebuild 前拉取上游 :latest（仅 latest，pin 版本跳过），见 .devcontainer/pull-image.sh。
     volumes:
       - ..:/home/vscode/workspace
 
