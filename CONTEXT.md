@@ -20,6 +20,14 @@ _Avoid_: AI tools, agent stack
 Persistent per-user state for AI coding tools, including credentials, settings, local databases, and session state.
 _Avoid_: Cache, tool cache
 
+**Agent-Operated**:
+The development container is run primarily by the AI Agent Toolchain rather than an interactive human; a person only provisions and supervises it. Shapes what the Prebuilt Image bakes (agent-essential tooling plus a thin human fallback) and who user-facing docs address. See [docs/adr/0002-agent-first-baseline.md](docs/adr/0002-agent-first-baseline.md).
+_Avoid_: developer workstation, human IDE
+
+**Human Supervisor**:
+A person who provisions, debugs, or oversees the Agent-Operated container through a minimal plain-`bash` path, without the ergonomic shell tooling a daily human user would expect.
+_Avoid_: developer, end user
+
 **Host Tunnel Port**:
 A container port deliberately bound to the host loopback interface so host-side tunnel software can expose a tool without publishing it on the LAN.
 _Avoid_: Public port, forwarded port
