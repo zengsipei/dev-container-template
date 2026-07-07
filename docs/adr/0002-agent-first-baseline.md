@@ -3,6 +3,7 @@
 - **状态**：Accepted
 - **日期**：2026-06-25
 - **关联**：CONTEXT.md（*Agent-Operated* / *Human Supervisor* / *Prebuilt Image* / *AI Agent Toolchain*）、ADR 0001（修订其「thin 慢变基线」的「给人用」前提）、Issue #3（文档去重，决策 C）、Issue「Slim the Prebuilt Image for agent-first operation」（决策 B）
+- **后续修订**：[ADR 0004](0004-template-validation-policy.md) 把下方归属表中「缓存持久化实现（符号链接映射）」的唯一 owner 由 `devimage-build/README.md` 改为 Dockerfile 代码注释（对齐 ADR 0003 §6）；其余归属不变。
 
 本 ADR 固化一次定位转变：开发容器从**给人用的环境**转为**给 agent 用的环境**，并定义随之而来的镜像精简方向与文档 reader-role 模型。
 
