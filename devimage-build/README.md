@@ -15,22 +15,22 @@ devimage-build/
 ## 镜像信息
 
 - **镜像名称**：`xiao806852034/ai-dev-container:latest`
-- **基础镜像**：`mcr.microsoft.com/devcontainers/base:ubuntu`
+- **基础镜像**：`debian:trixie-slim`
 - **支持架构**：`linux/amd64`, `linux/arm64`
 
 ## 预装内容
 
 ### Features（通过 devcontainer.json）
 
-- Node.js LTS + pnpm
-- Python 3.12 + Poetry
+- Node.js LTS + pnpm / yarn
+- Python 3.13（os-provided）+ pipx
 - Rust
 - GitHub CLI
 - Docker-in-Docker
 
 ### 系统工具（通过 Dockerfile）
 
-镜像走 **agent-first** 基线（见 [ADR 0002](../docs/adr/0002-agent-first-baseline.md)）：只烘焙 AI Agent Toolchain 与 Human Supervisor debug 双方都需要的工具，本镜像不再安装或配置任何交互式 shell 工效层——`tmux` / `bat` / `eza` / `xclip` 已移除，zsh 插件与 tmux 配置不再烘焙。基础镜像 `devcontainers/base:ubuntu` 自带的 zsh / oh-my-zsh / htop / tree **不主动清除**（逆上游 purge 维护成本高、体积收益小），但没有任何本仓库的层去配置或依赖它们。
+镜像走 **agent-first** 基线（见 [ADR 0002](../docs/adr/0002-agent-first-baseline.md)）：只烘焙 AI Agent Toolchain 与 Human Supervisor debug 双方都需要的工具。基础镜像用**裸 `debian:trixie-slim`** 而非 `devcontainers/base:*`——后者预烘焙了 common-utils 默认配置，自带 zsh / oh-my-zsh 等交互工效层。devcontainer 必需品（非 root 用户、sudo、locale 等）由 Dockerfile 自建 `vscode` 用户 + `common-utils` Feature（`installZsh: false`）补齐；`tmux` / `bat` / `eza` / `xclip`、zsh 插件与 tmux 配置均不安装（`htop` / `tree` 随 common-utils 基础包进入，算 debug 工具的 keep 侧，不视为泄漏）。基线由 CI 把关：`.github/workflows/image-build-check.yml` 在 PR 上构建镜像并断言上述工具的存在/缺席。
 
 - jq
 - ripgrep (rg)
@@ -41,7 +41,7 @@ devimage-build/
 - Git 配置（避免 Windows 换行符问题）
 - 包管理器缓存目录符号链接（npm / pnpm / pip / poetry / vscode-extensions）
 
-> 默认登录 shell 为 `bash`（基础镜像默认，验证：`getent passwd vscode` → `/bin/bash`）：`common-utils` Feature 设 `installZsh: false` / `installOhMyZsh: false` 且不 `configureZshAsDefaultShell`。Human Supervisor 进容器即得到可用的 `bash`；模板侧终端 profile（`.devcontainer/devcontainer.json`）同样默认 `bash`。
+> 默认登录 shell 为 `bash`（Dockerfile `useradd --shell /bin/bash` 创建 `vscode` 用户）：`common-utils` Feature 设 `installZsh: false` / `installOhMyZsh: false` 且不 `configureZshAsDefaultShell`。Human Supervisor 进容器即得到可用的 `bash`；模板侧终端 profile（`.devcontainer/devcontainer.json`）同样默认 `bash`。
 
 ## 本地构建
 
@@ -221,8 +221,10 @@ QEMU + Docker Buildx 提供多架构能力，实际构建与推送由 devcontain
 修改 `Dockerfile` 第一行：
 
 ```dockerfile
-FROM mcr.microsoft.com/devcontainers/base:ubuntu-22.04
+FROM debian:trixie-slim
 ```
+
+> 注意保持裸发行版镜像：换成 `devcontainers/base:*` 会重新引入预烘焙的 zsh / oh-my-zsh 等工效层，违背 ADR 0002 的 agent-first 基线。
 
 ### Q: 如何添加新的缓存目录？
 
