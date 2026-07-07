@@ -9,10 +9,7 @@ devimage-build/
 └── .devcontainer/
     ├── Dockerfile              # 镜像定义
     ├── devcontainer.json       # Features 配置
-    ├── devcontainer-lock.json  # Features 锁定文件
-    └── configs/                # 配置文件
-        ├── tmux.conf           # tmux 配置
-        └── zshrc-addon         # zsh 配置追加内容
+    └── devcontainer-lock.json  # Features 锁定文件
 ```
 
 ## 镜像信息
@@ -33,22 +30,18 @@ devimage-build/
 
 ### 系统工具（通过 Dockerfile）
 
+镜像走 **agent-first** 基线（见 [ADR 0002](../docs/adr/0002-agent-first-baseline.md)）：只烘焙 AI Agent Toolchain 与 Human Supervisor debug 双方都需要的工具，本镜像不再安装或配置任何交互式 shell 工效层——`tmux` / `bat` / `eza` / `xclip` 已移除，zsh 插件与 tmux 配置不再烘焙。基础镜像 `devcontainers/base:ubuntu` 自带的 zsh / oh-my-zsh / htop / tree **不主动清除**（逆上游 purge 维护成本高、体积收益小），但没有任何本仓库的层去配置或依赖它们。
+
 - jq
 - ripgrep (rg)
-- fd-find
-- bat
-- eza
-- htop
-- tree
-- tmux
-- xclip
+- fd-find（以 `fd` 暴露：`fdfind` 在 `PATH` 上符号链接为 `fd`）
 
 ### 用户配置（通过 Dockerfile）
 
 - Git 配置（避免 Windows 换行符问题）
-- tmux 配置 + TPM 插件管理器
-- zsh 配置 + 插件（autosuggestions, syntax-highlighting）
-- 缓存目录符号链接
+- 包管理器缓存目录符号链接（npm / pnpm / pip / poetry / vscode-extensions）
+
+> 默认登录 shell 为 `bash`（基础镜像默认，验证：`getent passwd vscode` → `/bin/bash`）：`common-utils` Feature 设 `installZsh: false` / `installOhMyZsh: false` 且不 `configureZshAsDefaultShell`。Human Supervisor 进容器即得到可用的 `bash`；模板侧终端 profile（`.devcontainer/devcontainer.json`）同样默认 `bash`。
 
 ## 本地构建
 
@@ -134,58 +127,6 @@ RUN apt-get update && apt-get install -y \
 }
 ```
 
-### 修改 tmux 配置
-
-编辑 `configs/tmux.conf`：
-
-```bash
-# tmux 基础配置
-set -g @plugin 'tmux-plugins/tpm'
-set -g @plugin 'tmux-plugins/tmux-sensible'
-
-# 启用鼠标
-set -g mouse on
-
-# 修改前缀键为 Ctrl-a
-set -g prefix C-a
-bind C-a send-prefix
-
-# 分屏快捷键
-bind | split-window -h
-bind - split-window -v
-
-# 窗口导航
-bind h select-pane -L
-bind j select-pane -D
-bind k select-pane -U
-bind l select-pane -R
-```
-
-### 修改 zsh 配置
-
-编辑 `configs/zshrc-addon`：
-
-```bash
-# zsh 主题（随机）
-ZSH_THEME="random"
-
-# zsh 插件
-plugins=(git z sudo zsh-autosuggestions zsh-syntax-highlighting)
-
-# 实用别名
-alias ll="eza -la"
-alias bat="batcat"
-alias cat="bat"
-alias find="fd"
-alias grep="rg"
-
-# tmux 快捷键
-alias ta='tmux attach -t'
-alias tn='tmux new -s'
-alias tl='tmux ls'
-alias tk='tmux kill-session -t'
-```
-
 ## 缓存持久化策略
 
 ### 符号链接映射
@@ -198,16 +139,14 @@ alias tk='tmux kill-session -t'
 ├── pnpm/                  # → ~/.local/share/pnpm
 ├── pip/                   # → ~/.cache/pip
 ├── poetry/                # → ~/.cache/pypoetry
-├── vscode-extensions/     # → ~/.vscode-server/extensions
-├── tmux/                  # → ~/.tmux
-└── zsh/                   # → ~/.zsh
+└── vscode-extensions/     # → ~/.vscode-server/extensions
 ```
 
 ### 实现方式
 
 ```dockerfile
 # 创建缓存目录
-RUN mkdir -p ~/.cache-volumes/{npm,pnpm,pip,poetry,vscode-extensions,tmux/plugins,zsh}
+RUN mkdir -p ~/.cache-volumes/{npm,pnpm,pip,poetry,vscode-extensions}
 
 # 创建符号链接
 RUN ln -sf ~/.cache-volumes/npm ~/.npm \
