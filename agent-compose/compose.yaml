@@ -11,7 +11,8 @@ services:
       # 要让 agent 操作的项目目录；默认挂本仓库根，改 .env 的 WORKSPACE_DIR 指向任意项目
       - ${WORKSPACE_DIR:-..}:/home/vscode/workspace
 
-      # Agent Home（.claude / .codex / .gemini 登录态与配置），与 devcontainer 共享
+      # Agent Home（Persistence Manifest 点名的 agent dotdir，清单见 scripts/link-agent-home.sh），
+      # 与 devcontainer 共享
       - ${WSL_HOME:-dev-home}:/home/vscode/wsl-home:cached
 
       # 统一缓存目录（npm / pnpm / pip / poetry），与 devcontainer 共享
@@ -19,6 +20,10 @@ services:
 
       # 容器内引导脚本：链接 Agent Home、Startup Install agent CLI，然后常驻
       - ./bootstrap.sh:/usr/local/bin/agent-bootstrap:ro
+
+      # Agent Home 链接脚本（Persistence Manifest 唯一来源），与 bootstrap.sh 同方式挂载：
+      # WORKSPACE_DIR 可指向任意项目，仓库文件不保证在容器内
+      - ../scripts/link-agent-home.sh:/usr/local/bin/link-agent-home:ro
 
     working_dir: /home/vscode/workspace
 

@@ -2,22 +2,9 @@
 set -e
 
 # ============================================
-# 链接 AI agent 配置（从 dev-home volume）
+# 链接 Agent Home（Persistence Manifest 见 scripts/link-agent-home.sh）
 # ============================================
-if [ -d "/home/vscode/wsl-home/.claude" ]; then
-    echo "📦 Linking Claude Code configuration..."
-    ln -sf /home/vscode/wsl-home/.claude ~/.claude
-fi
-
-if [ -d "/home/vscode/wsl-home/.codex" ]; then
-    echo "📦 Linking Codex configuration..."
-    ln -sf /home/vscode/wsl-home/.codex ~/.codex
-fi
-
-if [ -d "/home/vscode/wsl-home/.gemini" ]; then
-    echo "📦 Linking Gemini configuration..."
-    ln -sf /home/vscode/wsl-home/.gemini ~/.gemini
-fi
+bash scripts/link-agent-home.sh
 
 
 # ============================================
@@ -43,12 +30,8 @@ fi
 # HAPI Local Hub（@twsxtd/hapi）
 # ============================================
 # HAPI 作为 Startup Install 在容器创建时从 npm 安装，保持最新；
-# 状态目录 ~/.hapi 纳入 Agent Home 持久化；hub 与 runner 在后台拉起。
-
-# 持久化 ~/.hapi 到 Agent Home（与 .claude/.codex/.gemini 一致）
-echo "📦 Linking HAPI configuration..."
-mkdir -p /home/vscode/wsl-home/.hapi
-ln -sfn /home/vscode/wsl-home/.hapi ~/.hapi
+# 状态目录 ~/.hapi 的持久化由 Persistence Manifest（scripts/link-agent-home.sh）负责；
+# hub 与 runner 在后台拉起。
 
 # Startup Install：安装或更新 HAPI（使用官方 registry 确保拉到平台二进制）
 echo "📦 Installing/updating HAPI..."

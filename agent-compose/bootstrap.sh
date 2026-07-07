@@ -8,16 +8,12 @@
 #   3. sleep infinity 常驻，等待 `docker compose exec agent <cli>` 进入
 set -e
 
-AGENT_HOME=/home/vscode/wsl-home
-
 # ============================================
-# 链接 AI agent 配置（与 devcontainer 共享同一 dev-home volume）
+# 链接 Agent Home（Persistence Manifest 见仓库 scripts/link-agent-home.sh）
 # ============================================
-for dir in .claude .codex .gemini; do
-    mkdir -p "$AGENT_HOME/$dir"
-    ln -sfn "$AGENT_HOME/$dir" "$HOME/$dir"
-    echo "📦 Linked $dir -> Agent Home"
-done
+# 脚本由 compose.yaml 挂载进来——WORKSPACE_DIR 可指向任意项目，
+# 仓库文件不保证在容器内，不能按相对路径调用。
+bash /usr/local/bin/link-agent-home
 
 # ============================================
 # 安装 AI Agents（Startup Install，幂等）
