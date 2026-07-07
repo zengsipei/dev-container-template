@@ -2,6 +2,8 @@
 
 预构建镜像源码，通过 GitHub Actions 自动构建并推送到 Docker Hub。
 
+> 本文档面向模板维护者，是**镜像内容与发布**的单一所有者。使用容器见 [.devcontainer/README.md](../.devcontainer/README.md)，项目概览见[根 README](../README.md)。
+
 ## 目录结构
 
 ```
