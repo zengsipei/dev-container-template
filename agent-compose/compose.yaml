@@ -1,0 +1,49 @@
+# 纯 Docker Compose 的 coding agent 运行环境 —— 不依赖 VS Code devcontainer。
+# 复用同一个 Prebuilt Image 与同名 volume（dev-home / dev-cache），
+# 因此 agent 登录态、包管理器缓存与 devcontainer 完全共享。
+# 发布契约见 docs/adr/0001-image-release-contract.md（默认消费 :latest）。
+services:
+  agent:
+    # 与 .devcontainer/compose.yaml 相同的参数化引用；fork 者在本目录 .env 覆盖。
+    image: ${DOCKERHUB_USERNAME:-xiao806852034}/${IMAGE_NAME:-ai-dev-container}:${IMAGE_TAG:-latest}
+
+    volumes:
+      # 要让 agent 操作的项目目录；默认挂本仓库根，改 .env 的 WORKSPACE_DIR 指向任意项目
+      - ${WORKSPACE_DIR:-..}:/home/vscode/workspace
+
+      # Agent Home（.claude / .codex / .gemini 登录态与配置），与 devcontainer 共享
+      - ${WSL_HOME:-dev-home}:/home/vscode/wsl-home:cached
+
+      # 统一缓存目录（npm / pnpm / pip / poetry），与 devcontainer 共享
+      - dev-cache:/home/vscode/.cache-volumes
+
+      # 容器内引导脚本：链接 Agent Home、Startup Install agent CLI，然后常驻
+      - ./bootstrap.sh:/usr/local/bin/agent-bootstrap:ro
+
+    working_dir: /home/vscode/workspace
+
+    # 引导完成后 sleep infinity 常驻；用 `docker compose exec agent claude` 进入
+    command: bash /usr/local/bin/agent-bootstrap
+
+    init: true
+
+    # 需要通过环境变量传 API key 时在此打开（值来自本目录 .env）：
+    # environment:
+    #   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    #   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+    # 资源限制（与 devcontainer 一致）
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+volumes:
+  # AI agent 配置存储（与 .devcontainer/compose.yaml 同名 → 同一个 volume）
+  dev-home:
+    name: dev-home
+  # 统一缓存存储
+  dev-cache:
+    name: dev-cache
