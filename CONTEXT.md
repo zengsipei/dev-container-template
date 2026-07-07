@@ -17,8 +17,24 @@ The set of command-line AI coding tools made available inside the development co
 _Avoid_: AI tools, agent stack
 
 **Agent Home**:
-Persistent per-user state for AI coding tools, including credentials, settings, local databases, and session state.
+Persistent per-user state for AI coding tools whose loss requires human intervention to recover — re-login, re-configuration, or irrecoverable history. Classified at the granularity of a tool's whole dotdir; the template never splits inside a dotdir.
 _Avoid_: Cache, tool cache
+
+**Rebuildable Cache**:
+Persistent state whose loss only costs time — the machine can regenerate it without human action (package downloads, editor extensions). The counterpart of Agent Home under the loss-cost criterion.
+_Avoid_: config storage, user data
+
+**Persistence Manifest**:
+The declarative list of tool dotdirs the template promises to persist as Agent Home. Anything not on the manifest is ephemeral: the container home is reset to the image baseline on every rebuild, by design.
+_Avoid_: link list, tool registry
+
+**Volume-Backed**:
+The default Agent Home backing: state lives in a Docker-managed named volume, invisible to the host filesystem and managed with `docker volume` tooling.
+_Avoid_: default mode, docker mode
+
+**Host-Backed**:
+The alternative Agent Home backing: state sits in a host (WSL) directory so host-side tools can manage and switch it externally — the container only mounts the directory and never participates in that management. Sharing one identity with tools running outside the container is a side benefit.
+_Avoid_: WSL mode, bind mode
 
 **Agent-Operated**:
 The development container is run primarily by the AI Agent Toolchain rather than an interactive human; a person only provisions and supervises it. Shapes what the Prebuilt Image bakes (agent-essential tooling plus a thin human fallback) and who user-facing docs address. See [docs/adr/0002-agent-first-baseline.md](docs/adr/0002-agent-first-baseline.md).
@@ -52,4 +68,4 @@ _Avoid_: build trigger
 A `workflow_dispatch` run that takes a Release Tag as input and republishes that exact version. Does not create a new version and does not move the Latest Pointer.
 _Avoid_: rerun, redeploy
 
-See [docs/adr/0001-image-release-contract.md](docs/adr/0001-image-release-contract.md) for the release contract that owns these terms.
+See [docs/adr/0001-image-release-contract.md](docs/adr/0001-image-release-contract.md) for the release contract that owns these terms, and [docs/adr/0003-persistence-policy.md](docs/adr/0003-persistence-policy.md) for the persistence policy that owns Agent Home, Rebuildable Cache, Persistence Manifest, Volume-Backed, and Host-Backed.
