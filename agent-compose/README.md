@@ -6,7 +6,7 @@
 - 在服务器 / CI 等没有 devcontainer 工具链的环境复用同一套镜像
 - 同时给多个项目各起一个 agent 容器
 
-复用与 `.devcontainer/` 相同的镜像和同名 volume(`dev-home` / `dev-cache`),因此 **agent 登录态与缓存两边共享**——在 devcontainer 里登录过的 claude,这里直接可用,反之亦然。
+复用与 `.devcontainer/` 相同的镜像和同名 volume(`dev-home` / `dev-cache`),因此 **agent 登录态与缓存两边共享**——在 devcontainer 里登录过的 claude,这里直接可用,反之亦然。持久化语义(哪些状态存活、双后端、如何加新工具)归 [.devcontainer/README.md 的「持久化」](../.devcontainer/README.md#持久化)所有。
 
 ## 使用
 
@@ -21,7 +21,7 @@ docker compose exec agent claude   # 或 codex / gemini / bash
 docker compose down           # 用完关掉
 ```
 
-首次 `up` 时引导脚本(`bootstrap.sh`)会安装缺失的 agent CLI(Startup Install,镜像刻意不烘焙,见 [ADR 0001](../docs/adr/0001-image-release-contract.md));agent 配置目录(`~/.claude` 等)链接到 `dev-home` volume,重建容器不丢登录态。
+首次 `up` 时引导脚本(`bootstrap.sh`)会安装缺失的 agent CLI(Startup Install,镜像刻意不烘焙,见 [ADR 0001](../docs/adr/0001-image-release-contract.md)),并经共享的 Persistence Manifest 脚本(`scripts/link-agent-home.sh`)链接 Agent Home——与 devcontainer 完全同一份链接逻辑,详见[持久化](../.devcontainer/README.md#持久化)。
 
 ## 换一个项目
 

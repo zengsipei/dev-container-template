@@ -34,7 +34,16 @@ RUN git config --global core.autocrlf input \
     && git config --global init.defaultBranch main \
     && git config --global pull.rebase false
 
-# 创建缓存目录和符号链接（包管理器缓存持久化到 dev-cache volume）
+# Rebuildable Cache 布线：包管理器/扩展缓存持久化到 dev-cache volume（挂载点 ~/.cache-volumes）。
+# 布线跟随安装层（ADR 0003 §4）：这些工具由镜像烘焙，链接就留在 Dockerfile 烘焙，
+# 不搬进启动脚本——镜像是其唯一运行时来源，无分叉风险，且短命 home 使链接永远与镜像版本一致。
+# Startup Install 工具的 Agent Home 持久化则由 scripts/link-agent-home.sh 的 Persistence Manifest 布线。
+# 内部布局（volume 子目录 → home 内路径）：
+#   npm               → ~/.npm
+#   pnpm              → ~/.local/share/pnpm
+#   pip               → ~/.cache/pip
+#   poetry            → ~/.cache/pypoetry
+#   vscode-extensions → ~/.vscode-server/extensions
 RUN mkdir -p ~/.cache-volumes/npm \
     && mkdir -p ~/.cache-volumes/pnpm \
     && mkdir -p ~/.cache-volumes/pip \

@@ -35,70 +35,61 @@ cp .devcontainer/.env.example .devcontainer/.env
 WSL_HOME=/home/<username>
 ```
 
-**工作原理**:
-- **有 WSL_HOME**:bind mount 到指定目录(直接访问 WSL 文件)
-- **无 WSL_HOME**:使用 named volume(数据在 Docker 管理区域)
-- compose.yaml 会自动处理,无需手动创建 volume
+**工作原理**:`WSL_HOME` 选择 Agent Home 的后端——不设即 **Volume-Backed**(named volume),设了即 **Host-Backed**(bind mount 该目录)。两种模式的语义、切换与管理见[持久化](#持久化)。compose.yaml 自动处理,无需手动创建 volume。
 
-## 配置管理
+## 持久化
 
-### dev-cache Volume
+政策见 [ADR 0003](../docs/adr/0003-persistence-policy.md):**home 短命,清单点名持久**。任何状态会不会在 rebuild 后存活,只看丢失代价:
 
-所有缓存和用户配置存储在单个 named volume `dev-cache` 中:
+- **Agent Home**(`.claude` / `.codex` / `.gemini` / `.hapi`):丢了需要人工恢复(重登录、重配置、历史不可再生),由 Persistence Manifest 点名,符号链接进 Agent Home 后端,**rebuild 后存活**。
+- **Rebuildable Cache**(包管理器缓存、VS Code 扩展):丢了只损失时间,机器自动重建,存于 `dev-cache` volume,rebuild 后存活。
+- **其余一切 home 内容**(`.gitconfig`、shell 历史、临时安装的工具……):**每次 rebuild 重置到镜像基线**。这是特性而非缺陷——正因 home 短命,镜像基线的更新才能在 rebuild 时落地。
 
-```
-~/.cache-volumes/          # dev-cache volume 挂载点
-├── npm/                   # → ~/.npm
-├── pnpm/                  # → ~/.local/share/pnpm
-├── pip/                   # → ~/.cache/pip
-├── poetry/                # → ~/.cache/pypoetry
-└── vscode-extensions/     # → ~/.vscode-server/extensions
-```
+### 让一个新工具持久化
 
-**优势**:
-- 单个 volume 便于管理和备份
-- 重建容器不会丢失缓存和配置
-- 用户级配置独立于镜像,可自定义
+在 Persistence Manifest 加一行:编辑 [`scripts/link-agent-home.sh`](../scripts/link-agent-home.sh) 的 `PERSISTENCE_MANIFEST` 列表,加上该工具的 dotdir。判据只有一个问题——丢了要不要人工恢复?要,进清单;不要,属于 Rebuildable Cache(镜像烘焙工具的缓存链接在 Dockerfile 布线,见 ADR 0003 §4)。
 
-**管理命令**:
+### Agent Home 双后端
+
+Agent Home 存在哪里由 `WSL_HOME` 决定(设置方式见[上文](#环境变量配置)),两种模式:
+
+- **Volume-Backed**(默认,不设 `WSL_HOME`):存 Docker named volume `dev-home`,宿主文件系统不可见,用 `docker volume` 工具管理。适合从零开始的用户。
+- **Host-Backed**(设 `WSL_HOME`):bind mount 宿主(WSL)目录。第一目的是**外部管理**——让宿主侧工具(如 Windows 上的 cc-switch 经 WSL 目录中转)切换 agent 配置;容器内外共享登录态是附带好处。模板的职责止于把目录挂进来:容器内只见纯 POSIX 目录,Windows↔WSL 的路径翻译、逐文件混搭由用户在宿主侧自行编排。
+
+**切换不搬货**:两个后端是相互独立的存储,改 `WSL_HOME` 后重建容器只是换了存储位置,数据**不会自动迁移**——模板不对装着凭据的目录做自动搬运。需要带走登录态时手动搬:
+
 ```bash
-# 查看缓存大小
-docker volume inspect dev-cache
+# Volume-Backed → Host-Backed:把 volume 内容导出到 WSL 目录
+docker run --rm -v dev-home:/from -v /home/<username>:/to alpine cp -a /from/. /to/
 
-# 清理缓存(删除 volume)
-docker volume rm dev-cache
-
-# 备份缓存
-docker run --rm -v dev-cache:/data -v $(pwd):/backup alpine tar czf /backup/dev-cache.tar.gz /data
+# Host-Backed → Volume-Backed:只搬清单点名的 dotdir(不要把整个 WSL home 灌进 volume;
+# dotdir 清单以 scripts/link-agent-home.sh 为准,没用过的 agent 目录自动跳过)
+docker run --rm -v /home/<username>:/from -v dev-home:/to alpine sh -c \
+    'for d in .claude .codex .gemini .hapi; do if [ -d "/from/$d" ]; then cp -a "/from/$d" /to/; fi; done'
 ```
 
-### dev-home Volume
+**分后端管理命令**(`docker volume` 命令只适用于 Volume-Backed):
 
-AI agent 配置存储位置:
-
-- **Volume 名称**:`dev-home`
-- **挂载路径**:`/home/vscode/wsl-home`
-- **自动链接**:
-  - `~/.claude` → `/home/vscode/wsl-home/.claude`
-  - `~/.codex` → `/home/vscode/wsl-home/.codex`
-  - `~/.gemini` → `/home/vscode/wsl-home/.gemini`
-  - `~/.hapi` → `/home/vscode/wsl-home/.hapi`(HAPI 状态目录,见下文)
-
-**Volume 类型**(首次创建时决定):
-- **有 `WSL_HOME`**:bind mount,直接使用 WSL_HOME 目录
-  - 修改会同步到 WSL
-  - 适合已有配置的用户
-- **无 `WSL_HOME`**:普通 named volume
-  - 数据存储在 Docker 管理的区域
-  - 适合从零开始的用户
-
-**切换类型**:
 ```bash
-# 删除 volume
-docker volume rm dev-home
+# Volume-Backed
+docker volume inspect dev-home    # 查看
+docker run --rm -v dev-home:/data -v $(pwd):/backup alpine \
+    tar czf /backup/dev-home.tar.gz /data    # 备份
+docker volume rm dev-home         # 清空登录态(重启容器后重建为空)
 
-# 重启容器,会根据当前 WSL_HOME 重新创建
+# Host-Backed:就是一个普通 WSL 目录,用常规文件工具(ls / tar / rsync)管理即可
 ```
+
+### Rebuildable Cache 管理
+
+缓存存于 named volume `dev-cache`,丢了只损失重新下载的时间:
+
+```bash
+docker volume inspect dev-cache   # 查看
+docker volume rm dev-cache        # 清缓存(重启容器后自动重建)
+```
+
+> 内部布局与逐条链接映射是布线细节,见 `devimage-build/.devcontainer/Dockerfile` 注释。
 
 ## HAPI Local Hub
 
@@ -109,7 +100,7 @@ docker volume rm dev-home
 | 方面 | 做法 |
 |------|------|
 | 安装方式 | **Startup Install**:`post-create.sh` 里 `npm install -g @twsxtd/hapi --registry=https://registry.npmjs.org`,每次创建容器都安装/更新,保持最新(不烘焙进镜像) |
-| 状态持久化 | `~/.hapi` 链接到 `dev-home` volume 的 `.hapi` 目录,与 `.claude`/`.codex`/`.gemini` 一致 |
+| 状态持久化 | `~/.hapi` 在 Persistence Manifest 里,与其它 agent dotdir 一致(见[持久化](#持久化)) |
 | hub 启动 | 后台监听 `0.0.0.0:3006`(容器内全接口,便于 Docker 端口映射) |
 | runner 启动 | hub 端口就绪后自动启动 runner,工作目录为 `/home/vscode/workspace` |
 | 宿主映射 | `compose.yaml`:`127.0.0.1:3006:3006`(Host Tunnel Port,仅本机回环) |
@@ -120,7 +111,7 @@ docker volume rm dev-home
 
 容器创建时,`post-create.sh`:
 
-1. `mkdir -p /home/vscode/wsl-home/.hapi` 并 `ln -sfn ... ~/.hapi`(持久化)
+1. 经 `scripts/link-agent-home.sh` 链接 Agent Home(`~/.hapi` 在 Persistence Manifest 里)
 2. 安装/更新 HAPI
 3. 后台调用 `.devcontainer/hapi-up.sh`(不阻塞容器创建)
 
@@ -189,19 +180,7 @@ cloudflared tunnel run --url http://127.0.0.1:3006 hapi
 
 ### 用户主目录
 
-`/home/vscode` 是用户主目录,包含:
-
-**持久化内容**(通过 dev-cache volume):
-- 缓存目录(`.npm`、`.cache/pip` 等)
-- VS Code 扩展(`~/.vscode-server/extensions`)
-
-**非持久化内容**(重建容器会重置):
-- `.gitconfig`(由镜像提供默认配置)
-- 其他用户配置文件
-
-**AI agent 配置**:
-- 通过符号链接从 `wsl-home` 目录链接
-- 持久化在 `dev-home` volume 或 WSL 目录中
+`/home/vscode` 是用户主目录。哪些内容在 rebuild 后存活由持久化政策决定,见[持久化](#持久化):Persistence Manifest 点名的 agent dotdir 与 Rebuildable Cache 存活,其余(`.gitconfig` 等)重置到镜像基线。
 
 ## 端口转发说明
 
@@ -338,27 +317,7 @@ sudo chown -R 1000:1000 your-project/
 
 ### Q: 如何保留数据?
 
-**持久化数据**:
-
-1. **项目代码**:存储在宿主机,不受容器影响
-2. **缓存和扩展**:存储在 `dev-cache` volume
-3. **AI agent 配置**:存储在 `dev-home` volume 或 WSL 目录(取决于 WSL_HOME 配置)
-
-**非持久化数据**(重建容器会重置):
-- `.gitconfig` 等用户配置文件
-- 这些文件由镜像提供默认配置
-
-**管理缓存**:
-```bash
-# 查看缓存大小
-docker volume inspect dev-cache
-
-# 清理缓存
-docker volume rm dev-cache
-
-# 清理 AI agent 配置
-docker volume rm dev-home
-```
+见[持久化](#持久化)。要点:项目代码在宿主机,不受容器影响;Agent Home(清单点名的 dotdir)与缓存在 rebuild 后存活;**其余 home 内容每次 rebuild 重置到镜像基线**。想让新工具的状态存活,在 Persistence Manifest 加一行即可。
 
 ### Q: WSL home 挂载失败?
 
