@@ -6,7 +6,8 @@
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": false,
       "installOhMyZsh": false,
-      "upgradePackages": true
+      "upgradePackages": true,
+      "username": "vscode"
     },
     "ghcr.io/devcontainers/features/node:2.0.0": {
       "version": "lts"
