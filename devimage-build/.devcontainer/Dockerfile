@@ -4,17 +4,13 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu
 ENV DEBIAN_FRONTEND=noninteractive
 
 # 安装系统依赖（Features 未覆盖的工具）
+# fd-find 的二进制名为 fdfind；符号链接为 fd，便于 agent 与 Human Supervisor 直接调用
 RUN apt-get update && apt-get install -y \
     jq \
     ripgrep \
     fd-find \
-    bat \
-    eza \
-    htop \
-    tree \
-    tmux \
-    xclip \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf "$(command -v fdfind)" /usr/local/bin/fd
 
 # 配置 Git（避免 Windows 换行符问题）
 RUN git config --global core.autocrlf input \
@@ -25,31 +21,15 @@ RUN git config --global core.autocrlf input \
 USER vscode
 WORKDIR /home/vscode
 
-# 创建缓存目录和符号链接
+# 创建缓存目录和符号链接（包管理器缓存持久化到 dev-cache volume）
 RUN mkdir -p ~/.cache-volumes/npm \
     && mkdir -p ~/.cache-volumes/pnpm \
     && mkdir -p ~/.cache-volumes/pip \
     && mkdir -p ~/.cache-volumes/poetry \
     && mkdir -p ~/.cache-volumes/vscode-extensions \
-    && mkdir -p ~/.cache-volumes/zsh \
-    && mkdir -p ~/.cache-volumes/tmux/plugins \
     && mkdir -p ~/.local/share ~/.cache ~/.vscode-server \
     && ln -sf ~/.cache-volumes/npm ~/.npm \
     && ln -sf ~/.cache-volumes/pnpm ~/.local/share/pnpm \
     && ln -sf ~/.cache-volumes/pip ~/.cache/pip \
     && ln -sf ~/.cache-volumes/poetry ~/.cache/pypoetry \
-    && ln -sf ~/.cache-volumes/vscode-extensions ~/.vscode-server/extensions \
-    && ln -sf ~/.cache-volumes/zsh ~/.zsh \
-    && ln -sf ~/.cache-volumes/tmux ~/.tmux
-
-# 配置 tmux（持久化到 dev-cache）
-RUN git clone https://github.com/tmux-plugins/tpm ~/.cache-volumes/tmux/plugins/tpm
-COPY --chown=vscode:vscode configs/tmux.conf /home/vscode/.cache-volumes/tmux/.tmux.conf
-RUN ln -sf ~/.cache-volumes/tmux/.tmux.conf ~/.tmux.conf
-
-# 配置 zsh（持久化到 dev-cache）
-RUN git clone https://github.com/zsh-users/zsh-autosuggestions ~/.cache-volumes/zsh/zsh-autosuggestions \
-    && git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.cache-volumes/zsh/zsh-syntax-highlighting
-COPY --chown=vscode:vscode configs/zshrc-addon /tmp/zshrc-addon
-RUN cat /tmp/zshrc-addon >> ~/.zshrc \
-    && rm /tmp/zshrc-addon
+    && ln -sf ~/.cache-volumes/vscode-extensions ~/.vscode-server/extensions
