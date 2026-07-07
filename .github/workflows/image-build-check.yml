@@ -1,0 +1,62 @@
+# PR validation for the Prebuilt Image definition. NOT part of the release mechanism
+# (that is build-image.yml, contract: docs/adr/0001-image-release-contract.md).
+# This never pushes: it only proves `devcontainer build` succeeds and the image
+# satisfies the agent-first baseline (ADR 0002) before a change can merge.
+name: Image Build Check
+
+on:
+  pull_request:
+    paths:
+      - 'devimage-build/**'
+      - '.github/workflows/image-build-check.yml'
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build image (single-arch, no push)
+        run: |
+          npm install -g @devcontainers/cli
+          devcontainer build \
+            --workspace-folder ./devimage-build \
+            --image-name image-build-check:pr
+
+      - name: Verify agent-first baseline (ADR 0002)
+        run: |
+          docker run --rm --user vscode image-build-check:pr bash -c '
+            set -e
+
+            echo "--- 必备工具（agent 与 Human Supervisor 双方所需）---"
+            for tool in bash git jq rg fd node npm python3 cargo gh; do
+              command -v "$tool" >/dev/null || { echo "::error::missing tool: $tool"; exit 1; }
+              echo "ok: $tool"
+            done
+
+            echo "--- 工效层不得存在（zsh / oh-my-zsh / tmux / 装饰性 CLI）---"
+            # htop / tree 不在此列：它们由 common-utils Feature 作为基础包安装，
+            # 且是 Human Supervisor debug 实际会用的工具（ADR 0002 的 keep 侧）。
+            for tool in zsh tmux bat batcat eza xclip; do
+              if command -v "$tool" >/dev/null; then echo "::error::ergonomics layer leaked in: $tool"; exit 1; fi
+              echo "absent: $tool"
+            done
+            [ ! -e "$HOME/.oh-my-zsh" ] || { echo "::error::oh-my-zsh present"; exit 1; }
+
+            echo "--- 默认 shell 与用户 ---"
+            [ "$(getent passwd vscode | cut -d: -f7)" = "/bin/bash" ] || { echo "::error::vscode login shell is not /bin/bash"; exit 1; }
+            sudo -n true 2>/dev/null || { echo "::error::vscode has no passwordless sudo"; exit 1; }
+
+            echo "--- dev-cache 符号链接 ---"
+            for link in "$HOME/.npm" "$HOME/.local/share/pnpm" "$HOME/.cache/pip" "$HOME/.cache/pypoetry" "$HOME/.vscode-server/extensions"; do
+              [ -L "$link" ] || { echo "::error::missing cache symlink: $link"; exit 1; }
+              echo "ok: $link -> $(readlink "$link")"
+            done
+
+            echo "--- git 全局配置写在 vscode 用户下 ---"
+            [ "$(git config --global core.autocrlf)" = "input" ] || { echo "::error::git core.autocrlf not configured for vscode user"; exit 1; }
+
+            echo "✅ agent-first baseline holds"
+          '
