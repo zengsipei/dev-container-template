@@ -17,7 +17,8 @@
 #
 # 幂等:每个 CLI 先 `command -v` 探 PATH,已存在则跳过,重复跑是秒级 no-op。
 # HAPI 不在本清单:它是有意 devcontainer-only 的 delta,留在 post-create.sh(见 agent-compose README)。
-set -e
+# 对齐仓库约定(check-release-contract.sh 亦用 set -euo pipefail):未定义变量即失败、管道任一环节失败即失败。
+set -euo pipefail
 
 # Startup Install 清单:每个条目为 "PATH命令名|npm包|展示名"。
 # 想让一个新公共 agent CLI 被两个消费方安装,在此加一行即可。
