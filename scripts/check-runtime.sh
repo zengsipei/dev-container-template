@@ -35,6 +35,9 @@ command -v docker >/dev/null 2>&1 || { echo "❌ 运行时检查需要 docker"; 
 
 # fresh Agent Home:Host-Backed 临时目录（见文件头安全约束）
 TMP_HOME="$(mktemp -d)"
+# mktemp 默认 700 且属主是宿主用户;Linux bind mount 体现真实属主,
+# 容器内 vscode(uid 1000)必须能写 fresh home(CI runner 是 uid 1001)
+chmod 777 "$TMP_HOME"
 WSL_HOME="$TMP_HOME"
 # Windows（git-bash）下 compose 是 Windows 二进制,把 POSIX 临时路径转成它认识的形式
 if command -v cygpath >/dev/null 2>&1; then WSL_HOME="$(cygpath -m "$TMP_HOME")"; fi
