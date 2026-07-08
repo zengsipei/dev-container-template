@@ -1,0 +1,33 @@
+# Runtime validation tier (ADR 0004 decisions 5-6): boot the agent-compose
+# service with a fresh Agent Home, let bootstrap run its real path (npm installs
+# included), and assert Persistence Manifest links, idempotency, and Startup
+# Install — all implemented by scripts/check-runtime.sh via the umbrella.
+# This workflow is a thin caller.
+#
+# Needs network (image pull + npm registry), so it is path-filtered to the
+# runtime wiring instead of running on every PR like the static tier.
+name: Template Runtime Check
+
+on:
+  pull_request:
+    paths:
+      - 'agent-compose/**'
+      - 'scripts/link-agent-home.sh'
+      - 'scripts/install-agent-clis.sh'
+      - 'scripts/check-runtime.sh'
+      # the umbrella is what this workflow actually executes
+      - 'scripts/check-template.sh'
+      - '.github/workflows/template-runtime-check.yml'
+  workflow_dispatch:
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run runtime tier
+        run: bash scripts/check-template.sh runtime

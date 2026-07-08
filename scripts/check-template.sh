@@ -122,10 +122,14 @@ static_tier() {
 
 runtime_tier() {
   echo "── runtime tier ──"
-  if [ -f "$ROOT/scripts/check-runtime.sh" ]; then
-    run_check "runtime check" bash "$ROOT/scripts/check-runtime.sh"
-  else
-    echo "⏭️  SKIP  runtime tier (scripts/check-runtime.sh not implemented)"
+  # not run_check: the runtime check spends minutes on docker + real npm installs,
+  # so stream its output live instead of buffering until failure
+  if require docker "runtime check"; then
+    if bash "$ROOT/scripts/check-runtime.sh"; then
+      check_pass "runtime check"
+    else
+      check_fail "runtime check"
+    fi
   fi
 }
 

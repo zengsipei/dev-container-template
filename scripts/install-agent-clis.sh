@@ -28,6 +28,13 @@ AGENT_CLI_INSTALL=(
     "gemini|@google/gemini-cli|Gemini CLI"
 )
 
+# 数据查询接口:运行时检查(scripts/check-runtime.sh)从这里读断言来源(PATH 命令名),
+# 不得自带清单副本(ADR 0004 §5)。只打印、不安装,对消费方(无参调用)零影响。
+if [ "${1:-}" = "--print-clis" ]; then
+    for entry in "${AGENT_CLI_INSTALL[@]}"; do echo "${entry%%|*}"; done
+    exit 0
+fi
+
 for entry in "${AGENT_CLI_INSTALL[@]}"; do
     cli="${entry%%|*}"          # PATH 上探测的命令名
     rest="${entry#*|}"
