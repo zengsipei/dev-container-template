@@ -1,0 +1,22 @@
+# Static validation tier (ADR 0004): shellcheck, JSON/JSONC syntax,
+# compose config, and the ADR 0001 release-contract invariants —
+# all orchestrated by scripts/check-template.sh. This workflow is a thin caller.
+# (Replaces the former release-contract-check.yml; the invariants still run
+# exactly once per PR/push, via the umbrella.)
+name: Template Static Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run static tier
+        run: bash scripts/check-template.sh static
