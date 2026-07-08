@@ -41,7 +41,7 @@ devimage-build/
 ### 用户配置（通过 Dockerfile）
 
 - Git 配置（避免 Windows 换行符问题）
-- 包管理器缓存目录符号链接（npm / pnpm / pip / poetry / vscode-extensions）
+- 包管理器/编辑器扩展缓存符号链接到 dev-cache volume（见[缓存持久化](#缓存持久化)）
 
 > 默认登录 shell 为 `bash`（Dockerfile `useradd --shell /bin/bash` 创建 `vscode` 用户）：`common-utils` Feature 设 `installZsh: false` / `installOhMyZsh: false` 且不 `configureZshAsDefaultShell`。Human Supervisor 进容器即得到可用的 `bash`；模板侧终端 profile（`.devcontainer/devcontainer.json`）同样默认 `bash`。
 
@@ -129,40 +129,11 @@ RUN apt-get update && apt-get install -y \
 }
 ```
 
-## 缓存持久化策略
+## 缓存持久化
 
-### 符号链接映射
+包管理器与编辑器扩展缓存属于 **Rebuildable Cache**——丢了只损失重新下载的时间，机器可自动重建——持久化到 `dev-cache` volume，容器重建后无需重下。政策与丢失代价模型见 [ADR 0003](../docs/adr/0003-persistence-policy.md)。
 
-镜像构建时创建符号链接，将缓存目录映射到 `~/.cache-volumes/`：
-
-```
-~/.cache-volumes/          # dev-cache volume 挂载点
-├── npm/                   # → ~/.npm
-├── pnpm/                  # → ~/.local/share/pnpm
-├── pip/                   # → ~/.cache/pip
-├── poetry/                # → ~/.cache/pypoetry
-└── vscode-extensions/     # → ~/.vscode-server/extensions
-```
-
-### 实现方式
-
-```dockerfile
-# 创建缓存目录
-RUN mkdir -p ~/.cache-volumes/{npm,pnpm,pip,poetry,vscode-extensions}
-
-# 创建符号链接
-RUN ln -sf ~/.cache-volumes/npm ~/.npm \
-    && ln -sf ~/.cache-volumes/pnpm ~/.local/share/pnpm \
-    && ln -sf ~/.cache-volumes/pip ~/.cache/pip \
-    && ln -sf ~/.cache-volumes/poetry ~/.cache/pypoetry \
-    && ln -sf ~/.cache-volumes/vscode-extensions ~/.vscode-server/extensions
-```
-
-### 优势
-
-- 用户级配置独立于镜像
-- 重建容器不会丢失配置
-- 单个 volume 便于管理
+权威的目录映射与链接命令由 [`Dockerfile`](.devcontainer/Dockerfile) 的 Rebuildable Cache 布线块（注释 + `RUN` 指令）唯一拥有（[ADR 0004](../docs/adr/0004-template-validation-policy.md) 决策 2），本文不复述。
 
 ## 构建优化
 
@@ -230,15 +201,7 @@ FROM debian:trixie-slim
 
 ### Q: 如何添加新的缓存目录？
 
-1. 在 Dockerfile 中创建目录：
-```dockerfile
-RUN mkdir -p ~/.cache-volumes/<name>
-```
-
-2. 创建符号链接：
-```dockerfile
-RUN ln -sf ~/.cache-volumes/<name> ~/.<name>
-```
+这是一次单块编辑：在 [`Dockerfile`](.devcontainer/Dockerfile) 的 Rebuildable Cache 布线块中照抄既有条目的模式加一条，并同步更新块首的映射注释。
 
 ### Q: 如何调试构建错误？
 
