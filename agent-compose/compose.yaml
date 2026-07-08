@@ -25,6 +25,10 @@ services:
       # WORKSPACE_DIR 可指向任意项目，仓库文件不保证在容器内
       - ../scripts/link-agent-home.sh:/usr/local/bin/link-agent-home:ro
 
+      # 公共 agent CLI 安装脚本（Startup Install 唯一来源），与 link-agent-home 同方式挂载：
+      # WORKSPACE_DIR 可指向任意项目，仓库文件不保证在容器内
+      - ../scripts/install-agent-clis.sh:/usr/local/bin/install-agent-clis:ro
+
     working_dir: /home/vscode/workspace
 
     # 引导完成后 sleep infinity 常驻；用 `docker compose exec agent claude` 进入

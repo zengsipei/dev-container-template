@@ -16,22 +16,12 @@ set -e
 bash /usr/local/bin/link-agent-home
 
 # ============================================
-# 安装 AI Agents（Startup Install，幂等）
+# 安装公共 AI Agents（Startup Install，幂等）
 # ============================================
-if ! command -v claude &> /dev/null; then
-    echo "📦 Installing Claude Code..."
-    npm install -g @anthropic-ai/claude-code
-fi
-
-if ! command -v codex &> /dev/null; then
-    echo "📦 Installing OpenAI Codex..."
-    npm install -g @openai/codex
-fi
-
-if ! command -v gemini &> /dev/null; then
-    echo "📦 Installing Gemini CLI..."
-    npm install -g @google/gemini-cli
-fi
+# claude/codex/gemini 的安装清单唯一来源是 scripts/install-agent-clis.sh,
+# 经 compose.yaml 挂载为 /usr/local/bin/install-agent-clis 调用——与 link-agent-home 同方式。
+# HAPI 有意不在此装(见 agent-compose README),保持 devcontainer-only。
+bash /usr/local/bin/install-agent-clis
 
 echo "✅ Agent 环境就绪。进入方式：docker compose exec agent claude（或 codex / gemini / bash）"
 

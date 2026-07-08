@@ -8,7 +8,7 @@
 
 ### AI Agent Toolchain(Startup Install)
 
-以下工具**不烘焙进镜像**,由 `post-create.sh` 在容器创建时安装/更新,始终保持最新:
+以下工具**不烘焙进镜像**,由 `scripts/install-agent-clis.sh`(经 `post-create.sh` 调用)在容器创建时安装/更新,始终保持最新:
 
 - **Claude Code**(`claude`)- Anthropic 的 AI 编程助手
 - **OpenAI Codex**(`codex`)- OpenAI 的代码生成工具

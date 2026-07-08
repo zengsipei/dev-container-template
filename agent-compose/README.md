@@ -21,7 +21,7 @@ docker compose exec agent claude   # 或 codex / gemini / bash
 docker compose down           # 用完关掉
 ```
 
-首次 `up` 时引导脚本(`bootstrap.sh`)会安装缺失的 agent CLI(Startup Install,镜像刻意不烘焙,见 [ADR 0001](../docs/adr/0001-image-release-contract.md)),并经共享的 Persistence Manifest 脚本(`scripts/link-agent-home.sh`)链接 Agent Home——与 devcontainer 完全同一份链接逻辑,详见[持久化](../.devcontainer/README.md#持久化)。
+首次 `up` 时引导脚本(`bootstrap.sh`)会安装缺失的 agent CLI(Startup Install,镜像刻意不烘焙,见 [ADR 0001](../docs/adr/0001-image-release-contract.md)),并经共享的 Persistence Manifest 脚本(`scripts/link-agent-home.sh`)链接 Agent Home——与 devcontainer 完全同一份链接逻辑,详见[持久化](../.devcontainer/README.md#持久化)。agent CLI 的 Startup Install 同样收敛为共享脚本(`scripts/install-agent-clis.sh`),经 compose 挂载调用,两个消费方不再各自内联安装块。
 
 ## 换一个项目
 

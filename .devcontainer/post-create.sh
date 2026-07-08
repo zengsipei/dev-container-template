@@ -8,26 +8,16 @@ bash scripts/link-agent-home.sh
 
 
 # ============================================
-# 安装 AI Agents
+# 安装公共 AI Agent CLI（Startup Install）
 # ============================================
-if ! command -v claude &> /dev/null; then
-    echo "📦 Installing Claude Code..."
-    npm install -g @anthropic-ai/claude-code
-fi
-
-if ! command -v codex &> /dev/null; then
-    echo "📦 Installing OpenAI Codex..."
-    npm install -g @openai/codex
-fi
-
-if ! command -v gemini &> /dev/null; then
-    echo "📦 Installing Gemini CLI..."
-    npm install -g @google/gemini-cli
-fi
+# claude/codex/gemini 的安装清单唯一来源是 scripts/install-agent-clis.sh,
+# 两个消费方(post-create / bootstrap)都调它,不再各自内联。
+# HAPI 的 delta 仍在本脚本(devcontainer-only),见下方。
+bash scripts/install-agent-clis.sh
 
 
 # ============================================
-# HAPI Local Hub（@twsxtd/hapi）
+# HAPI Local Hub（@twsxtd/hapi）—— devcontainer-only
 # ============================================
 # HAPI 作为 Startup Install 在容器创建时从 npm 安装，保持最新；
 # 状态目录 ~/.hapi 的持久化由 Persistence Manifest（scripts/link-agent-home.sh）负责；
