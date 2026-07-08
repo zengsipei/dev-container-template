@@ -28,6 +28,13 @@ PERSISTENCE_MANIFEST=(
     .hapi
 )
 
+# 数据查询接口:运行时检查(scripts/check-runtime.sh)从这里读断言来源,
+# 不得自带清单副本(ADR 0004 §5)。只打印、不链接,对消费方(无参调用)零影响。
+case "${1:-}" in
+    --print-manifest)   printf '%s\n' "${PERSISTENCE_MANIFEST[@]}"; exit 0 ;;
+    --print-agent-home) printf '%s\n' "$AGENT_HOME"; exit 0 ;;
+esac
+
 for dir in "${PERSISTENCE_MANIFEST[@]}"; do
     # 无条件 mkdir -p:全新 Volume-Backed 用户的 dotdir 尚不存在,
     # 条件链接会让登录态写进容器 FS、rebuild 即丢
