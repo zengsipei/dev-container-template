@@ -26,8 +26,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 COMPOSE_FILE="$ROOT/agent-compose/compose.yaml"
 # 固定项目名:与真实使用（默认项目名 agent-compose）隔离,重跑可清理上次残留
 PROJECT=template-runtime-check
-# bootstrap.sh 收尾输出的稳定子串,作为「引导完成」信号;改 bootstrap 的完成消息需同步这里
-READY_MARKER="Agent 环境就绪"
+# 「引导完成」信号读自 bootstrap.sh 本体（数据接口,不自带副本）
+READY_MARKER="$(bash "$ROOT/agent-compose/bootstrap.sh" --print-ready-marker)"
 
 compose() { docker compose -p "$PROJECT" -f "$COMPOSE_FILE" "$@"; }
 

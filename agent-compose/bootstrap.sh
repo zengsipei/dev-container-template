@@ -8,6 +8,14 @@
 #   3. sleep infinity 常驻，等待 `docker compose exec agent <cli>` 进入
 set -e
 
+# 完成消息定义一次:结尾 echo 与运行时检查(scripts/check-runtime.sh)的「引导完成」
+# 信号共用这一份——检查经 --print-ready-marker 读它,不自带副本(ADR 0004 决策 1)。
+READY_MESSAGE="✅ Agent 环境就绪。进入方式：docker compose exec agent claude（或 codex / gemini / bash）"
+if [ "${1:-}" = "--print-ready-marker" ]; then
+    echo "$READY_MESSAGE"
+    exit 0
+fi
+
 # ============================================
 # 链接 Agent Home（Persistence Manifest 见仓库 scripts/link-agent-home.sh）
 # ============================================
@@ -23,7 +31,7 @@ bash /usr/local/bin/link-agent-home
 # HAPI 有意不在此装(见 agent-compose README),保持 devcontainer-only。
 bash /usr/local/bin/install-agent-clis
 
-echo "✅ Agent 环境就绪。进入方式：docker compose exec agent claude（或 codex / gemini / bash）"
+echo "$READY_MESSAGE"
 
 # 常驻（PID 1 由 compose 的 init: true 托管，可正常响应 stop 信号）
 exec sleep infinity
