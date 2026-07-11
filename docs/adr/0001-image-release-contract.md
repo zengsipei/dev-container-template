@@ -3,7 +3,7 @@
 - **状态**：Accepted
 - **日期**：2026-06-24
 - **关联**：CONTEXT.md（*Prebuilt Image* / *Startup Install* / *Release Tag* / *Latest Pointer* / *Release Trigger* / *Manual Rebuild*）、`.github/workflows/build-image.yml`、`.devcontainer/compose.yaml`、Issue #2
-- **后续修订**：[ADR 0002](0002-agent-first-baseline.md) 把本 ADR「thin 慢变基线」的隐含前提由「给人用」改为「agent-first」；发布契约其余不变。
+- **后续修订**：[ADR 0002](0002-agent-first-baseline.md) 把本 ADR「thin 慢变基线」的隐含前提由「给人用」改为「agent-first」；发布契约其余不变。[ADR 0005](0005-pull-image-derives-from-compose.md) 把消费端 pull-image.sh 改为从 compose 派生镜像标识，并扩展不变量①到三处互匹 + 防回归守卫。
 
 本 ADR 是 Prebuilt Image 发布契约的**单一真相源**。散文文档（根 `README.md`、`devimage-build/README.md`、`.devcontainer/README.md`）只**链接**到这里，不得各自复述发布事实；`build-image.yml` 是发布**机制**的可执行真相。
 

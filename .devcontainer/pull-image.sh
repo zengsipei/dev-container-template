@@ -10,43 +10,30 @@
 #   （含每次 Rebuild），此时拉取的是真正的上游 tag，不受临时 compose 改写影响。VS Code 随后的派生
 #   构建会 FROM 这个刚刷新的本地 :latest，于是 rebuild 就跑到了新发布的镜像上。
 #
+# 镜像标识单一真相源 = .devcontainer/compose.yaml（ADR 0001）。本脚本不再自带默认值字面量，
+# 而是直接用 `docker compose config --images` 让 compose 自己的解析器落定 ${...:-} 默认值，
+# 因此 fork / 改默认值只需改 compose 一处（见 ADR 0005）。
 # 行为：
 #   - 仅当消费的 tag 是 latest（Latest Pointer）时拉取；pin 到 :vX.Y.Z 的用户跳过，不被强制拉取。
-#   - best-effort：拉取失败（离线等）不阻塞容器创建，回退到本地已缓存镜像。
+#   - best-effort：派生失败（docker 缺失 / compose 解析报错）不阻塞容器创建，回退到本地已缓存镜像。
 #   - PULL_IMAGE_DRYRUN=1 时只打印决策、不调用 docker（用于本地验证逻辑）。
 set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="$SCRIPT_DIR/.env"
+# 进入脚本所在目录，docker compose 以相对路径读取 compose.yaml。
+# 规避 Windows Git Bash 下绝对路径（/f/...）不被 Windows 版 docker 识别、导致静默跳过拉取的坑。
+cd "$(dirname "${BASH_SOURCE[0]}")" || exit 0
 
-# 与 compose.yaml 一致的默认值（单一真相在 ADR 0001；此处仅为本地消费端）
-DEFAULT_USER="xiao806852034"
-DEFAULT_IMAGE="ai-dev-container"
-DEFAULT_TAG="latest"
-
-# 从 .env 读取镜像标识变量（仅取需要的 key，避免 source 任意内容）。
-read_env() {
-  local key="$1"
-  [ -f "$ENV_FILE" ] || return 0
-  # 取最后一个非注释赋值，去掉可能的引号与首尾空白
-  grep -E "^[[:space:]]*${key}=" "$ENV_FILE" 2>/dev/null \
-    | grep -vE "^[[:space:]]*#" \
-    | tail -n1 \
-    | sed -E "s/^[[:space:]]*${key}=//; s/^[\"']//; s/[\"'][[:space:]]*$//; s/[[:space:]]*$//"
-}
-
-# 环境变量优先，其次 .env，最后默认值
-USERNAME="${DOCKERHUB_USERNAME:-$(read_env DOCKERHUB_USERNAME)}"
-IMAGE="${IMAGE_NAME:-$(read_env IMAGE_NAME)}"
-TAG="${IMAGE_TAG:-$(read_env IMAGE_TAG)}"
-
-USERNAME="${USERNAME:-$DEFAULT_USER}"
-IMAGE="${IMAGE:-$DEFAULT_IMAGE}"
-TAG="${TAG:-$DEFAULT_TAG}"
-
-REF="${USERNAME}/${IMAGE}:${TAG}"
+# 单一真相源：compose.yaml 的 image 字段，由 compose 解析器落定 ${...:-} 默认值。
+# 派生失败（docker 缺失 / compose 解析报错 / 无镜像输出）时回退本地缓存，best-effort 非阻塞。
+REF="$(docker compose -f compose.yaml config --images 2>/dev/null | head -n1)"
+if [ -z "$REF" ]; then
+  echo "⚠️  无法从 compose 派生镜像引用（docker 缺失或 compose 解析失败），跳过镜像预拉取"
+  exit 0
+fi
 
 # pin 的版本是不可变的，不强制拉取，保持在固定 digest 上。
+# tag 从完整 ref 末段取：image@sha256:... 的 digest pin 也落入「非 latest」分支而跳过。
+TAG="${REF##*:}"
 if [ "$TAG" != "latest" ]; then
   echo "🔒 Pinned image tag '$TAG' — 跳过自动拉取（$REF）"
   exit 0
@@ -54,11 +41,6 @@ fi
 
 if [ "${PULL_IMAGE_DRYRUN:-0}" = "1" ]; then
   echo "DRYRUN would pull: $REF"
-  exit 0
-fi
-
-if ! command -v docker >/dev/null 2>&1; then
-  echo "⚠️  未找到 docker，跳过镜像预拉取（$REF）"
   exit 0
 fi
 

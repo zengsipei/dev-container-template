@@ -35,7 +35,11 @@ require() {
 # JSONC-aware syntax validation. devcontainer.json is JSONC per the devcontainer
 # spec (comments and trailing commas are legal); mode=json parses strictly.
 validate_json() { # <file> <json|jsonc>
-  node -e '
+  # node is a native Windows binary that rejects Git-Bash's /f/... absolute paths;
+  # cd into the file's directory and pass only the basename so node reads it fine.
+  local file="$1" dir
+  dir="$(cd "$(dirname "$file")" && pwd)"
+  with_cwd "$dir" node -e '
     const fs = require("fs");
     const [file, mode] = process.argv.slice(1);
     let s = fs.readFileSync(file, "utf8");
@@ -82,17 +86,28 @@ validate_json() { # <file> <json|jsonc>
       s = stripTrailingCommas(stripComments(s));
     }
     JSON.parse(s);
-  ' "$1" "$2"
+  ' "$(basename "$file")" "$2"
 }
+
+# compose_config <dir> : validate compose.yaml inside <dir> via a *relative* -f.
+# A direct `docker compose -f "$ROOT/<dir>/compose.yaml"` would carry a /f/...
+# path that Windows' docker binary rejects; cd'ing first avoids that entirely.
+compose_config() { ( cd "$1" && exec docker compose -f compose.yaml config -q ); }
+
+# with_cwd <dir> <cmd...> : run a *native* binary (docker/git/node/shellcheck) with cwd
+# at <dir>. Git-Bash passes /f/... absolute paths to native Windows binaries, which
+# reject them; cd'ing first (so only relative args cross the boundary) avoids the
+# failure. This is the single home for the Windows path workaround used by the tiers.
+with_cwd() { local d="$1"; shift; ( cd "$d" && exec "$@" ); }
 
 static_tier() {
   echo "── static tier ──"
 
   # lint all tracked shell scripts with shellcheck
   local scripts=()
-  while IFS= read -r f; do scripts+=("$ROOT/$f"); done < <(git -C "$ROOT" ls-files '*.sh')
+  while IFS= read -r f; do scripts+=("$f"); done < <(with_cwd "$ROOT" git ls-files '*.sh')
   if require shellcheck "shellcheck"; then
-    run_check "shellcheck (${#scripts[@]} scripts)" shellcheck "${scripts[@]}"
+    run_check "shellcheck (${#scripts[@]} scripts)" with_cwd "$ROOT" shellcheck "${scripts[@]}"
   fi
 
   # JSON / JSONC syntax (devcontainer.json is JSONC; the lock file is plain JSON)
@@ -104,16 +119,34 @@ static_tier() {
         *) mode=json ;;
       esac
       run_check "$mode syntax: $f" validate_json "$ROOT/$f" "$mode"
-    done < <(git -C "$ROOT" ls-files '*.json')
+    done < <(with_cwd "$ROOT" git ls-files '*.json')
   fi
 
   # docker compose config for both compose definitions
   # (all interpolated vars carry :- defaults, so no .env is required)
   if require docker "compose config"; then
-    run_check "compose config: .devcontainer/compose.yaml" \
-      docker compose -f "$ROOT/.devcontainer/compose.yaml" config -q
-    run_check "compose config: agent-compose/compose.yaml" \
-      docker compose -f "$ROOT/agent-compose/compose.yaml" config -q
+    # cd into each compose dir so compose.yaml is read by a *relative* -f; an
+    # explicit -f "$ROOT/..." would carry a /f/... path Windows' docker rejects.
+    run_check "compose config: .devcontainer/compose.yaml" compose_config "$ROOT/.devcontainer"
+    run_check "compose config: agent-compose/compose.yaml" compose_config "$ROOT/agent-compose"
+
+    # pull-image.sh derives REF from compose.yaml (ADR 0005): its DRYRUN output must
+    # equal `docker compose config --images`. First automated coverage for pull-image.sh.
+    local expected_ref dryrun_out
+    # cd into .devcontainer so compose.yaml is read by a *relative* -f; an explicit
+    # -f "$ROOT/..." would carry a /f/... path that Windows' docker binary rejects.
+    expected_ref="$(cd "$ROOT/.devcontainer" && docker compose -f compose.yaml config --images 2>/dev/null | head -n1)"
+    if dryrun_out="$(PULL_IMAGE_DRYRUN=1 bash "$ROOT/.devcontainer/pull-image.sh" 2>&1)"; then
+      if [ "$dryrun_out" = "DRYRUN would pull: $expected_ref" ]; then
+        check_pass "pull-image.sh DRYRUN ref == compose (ADR 0005)"
+      else
+        check_fail "pull-image.sh DRYRUN ref mismatch"
+        printf '%s\n' "$dryrun_out" | sed 's/^/    /'
+      fi
+    else
+      check_fail "pull-image.sh DRYRUN failed"
+      printf '%s\n' "$dryrun_out" | sed 's/^/    /'
+    fi
   fi
 
   # ADR 0001 invariants — check-release-contract.sh stays the sole authority
